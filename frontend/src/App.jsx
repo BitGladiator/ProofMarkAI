@@ -9,6 +9,9 @@ function App() {
       setMessage("Reviewing...");
     }
   }
+  function handleSample() {
+    setDraft("This is a sample draft to test the review button.");
+  }
   return (
     <div>
       <h1>ProofMark AI</h1>
@@ -20,6 +23,7 @@ function App() {
       />
       <br />
       <button onClick={handleClick}>Review</button>
+      <button onClick={handleSample}>Load sample</button>
       <p>{message}</p>
     </div>
   );
