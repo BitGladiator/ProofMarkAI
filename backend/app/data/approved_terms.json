@@ -1,0 +1,22 @@
+[
+  {
+    "id": "TERM-01",
+    "preferred": "customer",
+    "avoid": ["consumer", "clientele"]
+  },
+  {
+    "id": "TERM-02",
+    "preferred": "AI assistant",
+    "avoid": ["magic bot", "autonomous agent bot", "AI robot"]
+  },
+  {
+    "id": "TERM-03",
+    "preferred": "workspace",
+    "avoid": ["sandbox workspace", "tenant account"]
+  },
+  {
+    "id": "TERM-04",
+    "preferred": "sign in",
+    "avoid": ["logon", "login into"]
+  }
+]
