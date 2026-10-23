@@ -1,8 +1,14 @@
 import { useState } from "react";
-
 function App() {
   const [draft, setDraft] = useState("");
-
+  const [message, setMessage] = useState("");
+  function handleClick() {
+    if (draft === "") {
+      setMessage("Please type something first");
+    } else {
+      setMessage("Reviewing...");
+    }
+  }
   return (
     <div>
       <h1>ProofMark AI</h1>
@@ -13,9 +19,9 @@ function App() {
         placeholder="Paste your draft here"
       />
       <br />
-      <button>Review</button>
+      <button onClick={handleClick}>Review</button>
+      <p>{message}</p>
     </div>
   );
 }
-
 export default App;
