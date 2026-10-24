@@ -27,7 +27,7 @@ function App() {
       const response = await fetch(API_URL + "/api/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ draft: draft, guideline: guideline }),
+        body: JSON.stringify({ draft_text: draft, guideline: guideline }),
       });
       if (!response.ok) {
         throw new Error("Server error");
