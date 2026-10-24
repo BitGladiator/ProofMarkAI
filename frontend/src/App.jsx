@@ -41,6 +41,9 @@ function App() {
   function handleSample() {
     setDraft("This is a sample draft to test the review button.");
   }
+  function handleReviewAgain() {
+    handleClick();
+  }
   function handleAccept(index) {
     const f = findings[index];
     setDraft(draft.replace(f.excerpt, f.suggestion));
@@ -63,6 +66,9 @@ function App() {
         {loading ? "Reviewing..." : "Review"}
       </button>
       <button onClick={handleSample}>Load sample</button>
+      <button onClick={handleReviewAgain} disabled={loading || findings.length === 0}>
+        Review again
+      </button>
       <p>{message}</p>
       {findings.map((f, i) => (
         <div key={i} style={{ border: "1px solid gray", margin: "8px", padding: "8px" }}>
