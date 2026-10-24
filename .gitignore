@@ -11,6 +11,7 @@ jspm_packages/
 *.env
 !.env.example
 !backend/.env.example
+!frontend/.env.example
 
 # Logs
 logs/
