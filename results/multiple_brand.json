@@ -1,0 +1,71 @@
+{
+  "findings": [
+    {
+      "category": "Tone",
+      "severity": "medium",
+      "excerpt": "Hey guys!",
+      "explanation": "The informal greeting violates the requirement to maintain a professional and trustworthy tone.",
+      "suggestion": "Replace the informal greeting with a professional opening such as 'Hello' or 'Dear Customer'.",
+      "evidence_ids": [
+        "BG001"
+      ],
+      "confidence": "high"
+    },
+    {
+      "category": "Terminology",
+      "severity": "high",
+      "excerpt": "chatbot",
+      "explanation": "The product is referred to as 'chatbot' instead of the mandated 'AI Customer Assistant'.",
+      "suggestion": "Update the terminology to 'AI Customer Assistant' throughout the content.",
+      "evidence_ids": [
+        "BG002"
+      ],
+      "confidence": "high"
+    },
+    {
+      "category": "Unsupported Promotional Claims",
+      "severity": "high",
+      "excerpt": "cheapest AI tool in the world",
+      "explanation": "This is an exaggerated claim that lacks supporting evidence.",
+      "suggestion": "Remove the claim regarding being the 'cheapest AI tool in the world' to avoid unsupported comparisons.",
+      "evidence_ids": [
+        "BG003"
+      ],
+      "confidence": "high"
+    },
+    {
+      "category": "Factual Inconsistency",
+      "severity": "high",
+      "excerpt": "Rs. 99 per month",
+      "explanation": "The stated price contradicts the approved fact that the subscription costs Rs. 499 per month.",
+      "suggestion": "Correct the price to Rs. 499 per month.",
+      "evidence_ids": [
+        "FACT001"
+      ],
+      "confidence": "high"
+    },
+    {
+      "category": "Unsupported Promotional Claims",
+      "severity": "high",
+      "excerpt": "unlimited access",
+      "explanation": "The claim of 'unlimited access' contradicts the approved fact that the subscription allows 100 AI requests per month.",
+      "suggestion": "Update the copy to reflect the actual limit of 100 AI requests per month.",
+      "evidence_ids": [
+        "FACT003"
+      ],
+      "confidence": "high"
+    },
+    {
+      "category": "Unsupported Promotional Claims",
+      "severity": "high",
+      "excerpt": "100% accuracy",
+      "explanation": "The claim of 100% accuracy is unsupported and contradicts the internal testing fact of 92% accuracy.",
+      "suggestion": "Update the accuracy claim to reflect the verified 92% accuracy rate.",
+      "evidence_ids": [
+        "FACT002",
+        "BG003"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "findings": [
+    {
+      "category": "Incorrect terminology",
+      "severity": "high",
+      "excerpt": "Our chatbot",
+      "explanation": "The draft uses the term 'chatbot', which violates the brand guideline requiring the product to be referred to as 'AI Customer Assistant'.",
+      "suggestion": "Replace 'chatbot' with 'AI Customer Assistant'.",
+      "evidence_ids": [
+        "BG001"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

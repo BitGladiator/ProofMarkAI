@@ -1,0 +1,16 @@
+{
+  "findings": [
+    {
+      "category": "Unsupported promotional claims",
+      "severity": "high",
+      "excerpt": "guarantees 100% accuracy and zero errors",
+      "explanation": "The claim of 100% accuracy and zero errors contradicts the approved fact that the software achieved 92% accuracy during internal testing. Additionally, using absolute terms like 'guarantees' and 'zero errors' violates the brand guideline against exaggerated or absolute claims.",
+      "suggestion": "Revise the claim to align with the approved fact, stating 'The AI software achieved 92% accuracy during internal testing,' and remove absolute language such as 'guarantees' and 'zero errors'.",
+      "evidence_ids": [
+        "BG001",
+        "FACT001"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

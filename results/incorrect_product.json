@@ -1,0 +1,27 @@
+{
+  "findings": [
+    {
+      "category": "Factual inconsistency",
+      "severity": "high",
+      "excerpt": "Rs. 299 per month",
+      "explanation": "The draft content states the subscription price is Rs. 299, which contradicts the approved fact that the subscription costs Rs. 499 per month.",
+      "suggestion": "Update the pricing to Rs. 499 per month to align with approved product details.",
+      "evidence_ids": [
+        "BG001",
+        "FACT001"
+      ],
+      "confidence": "high"
+    },
+    {
+      "category": "Unsupported promotional claim",
+      "severity": "medium",
+      "excerpt": "unlimited access",
+      "explanation": "The draft claims 'unlimited access', which contradicts the approved fact that the subscription is limited to 100 AI requests per month.",
+      "suggestion": "Remove the claim of 'unlimited access' and clarify the 100 AI request limit per month.",
+      "evidence_ids": [
+        "FACT002"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

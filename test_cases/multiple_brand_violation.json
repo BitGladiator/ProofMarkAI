@@ -1,0 +1,31 @@
+{
+  "draft_content": "Hey guys! Our chatbot is the cheapest AI tool in the world. Get unlimited access for Rs. 99 per month. We guarantee 100% accuracy!",
+  "brand_guidelines": [
+    {
+      "id": "BG001",
+      "rule": "Maintain a professional and trustworthy tone."
+    },
+    {
+      "id": "BG002",
+      "rule": "Always refer to the product as 'AI Customer Assistant'."
+    },
+    {
+      "id": "BG003",
+      "rule": "Avoid exaggerated claims and unsupported comparisons."
+    }
+  ],
+  "approved_facts": [
+    {
+      "id": "FACT001",
+      "fact": "The subscription costs Rs. 499 per month."
+    },
+    {
+      "id": "FACT002",
+      "fact": "The product achieved 92% accuracy during internal testing."
+    },
+    {
+      "id": "FACT003",
+      "fact": "The subscription allows 100 AI requests per month."
+    }
+  ]
+}
