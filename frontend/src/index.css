@@ -212,6 +212,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   position: sticky;
   top: 0;
   z-index: 100;
+  width: 100%;
 }
 
 .nav-inner {
@@ -221,7 +222,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1.25rem;
+  min-width: 0;
 }
 
 .brand-mark {
@@ -231,6 +233,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   text-decoration: none;
   cursor: pointer;
   user-select: none;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.brand-logo-icon {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .brand-symbol {
@@ -247,6 +259,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text-main);
+  white-space: nowrap;
 }
 
 .brand-desk-badge {
@@ -288,10 +301,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  gap: 0.75rem;
+  flex-shrink: 0;
 }
 
 /* Status Pill */
+.status-pill-wrap {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -299,18 +319,30 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   font-family: var(--font-mono);
   font-size: 0.72rem;
   font-weight: 500;
-  padding: 0.2rem 0.55rem;
+  padding: 0.25rem 0.55rem;
   border-radius: var(--radius-xs);
   border: 1px solid var(--border-color);
   background: var(--bg-surface-subtle);
   color: var(--text-muted);
   white-space: nowrap;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.status-label-full {
+  display: inline;
+}
+
+.status-label-mobile {
+  display: none;
 }
 
 .status-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .status-pill.connected {
@@ -359,23 +391,155 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   margin-left: 0.25rem;
 }
 
+/* Responsive Button Label Toggles */
+.btn-text-full {
+  display: inline;
+}
+
+.btn-text-mobile {
+  display: none;
+}
+
+.nav-cta-btn {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.nav-return-btn {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 .mobile-menu-btn {
   display: none;
-  background: none;
+  background: var(--bg-surface);
   border: 1px solid var(--border-color);
   padding: 0.35rem;
   border-radius: var(--radius-xs);
   cursor: pointer;
   color: var(--text-main);
+  flex-shrink: 0;
+  line-height: 0;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.mobile-menu-btn:hover {
+  background: var(--bg-surface-subtle);
+  border-color: var(--border-hover);
+}
+
+/* Mobile Drawer & Backdrop */
+.mobile-drawer-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(19, 25, 22, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 90;
+  animation: backdropFadeIn 0.2s ease-out;
+}
+
+@keyframes backdropFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .mobile-drawer {
-  display: none;
-  flex-direction: column;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-color);
-  padding: 1rem 1.5rem 1.25rem;
+  box-shadow: 0 14px 28px -6px rgba(19, 25, 22, 0.15), 0 4px 12px rgba(19, 25, 22, 0.08);
+  padding: 0.85rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
   gap: 0.85rem;
+  z-index: 95;
+  animation: drawerSlideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes drawerSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mobile-drawer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.mobile-nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #ede8df;
+  padding: 0.8rem 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-main);
+  cursor: pointer;
+  text-align: left;
+  border-radius: var(--radius-xs);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.mobile-nav-link:hover,
+.mobile-nav-link:active {
+  background-color: var(--bg-surface-subtle);
+  color: var(--primary);
+}
+
+.mobile-nav-arrow {
+  color: var(--text-subtle);
+  font-size: 1rem;
+}
+
+.mobile-drawer-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+}
+
+.mobile-drawer-cta {
+  width: 100%;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  font-size: 0.92rem;
+}
+
+.mobile-drawer-status-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0.25rem 0;
+  font-size: 0.8rem;
+  color: var(--text-subtle);
+}
+
+.mobile-drawer-status-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 /* ==========================================================================
@@ -1590,16 +1754,52 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 
 /* Mobile: Below 768px */
 @media (max-width: 768px) {
+  .nav-inner {
+    padding: 0.65rem 1rem;
+    gap: 0.75rem;
+  }
+
+  .brand-title {
+    font-size: 1.18rem;
+  }
+
+  .brand-logo-icon {
+    width: 24px;
+    height: 24px;
+  }
+
   .nav-links-desktop {
     display: none;
   }
 
   .mobile-menu-btn {
-    display: block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
   }
 
-  .mobile-drawer {
-    display: flex;
+  .nav-actions {
+    gap: 0.5rem;
+  }
+
+  .status-label-full {
+    display: none;
+  }
+
+  .status-label-mobile {
+    display: inline;
+  }
+
+  .nav-cta-btn {
+    padding: 0.45rem 0.8rem;
+    font-size: 0.84rem;
+  }
+
+  .nav-return-btn {
+    padding: 0.45rem 0.8rem;
+    font-size: 0.84rem;
   }
 
   .hero-section {
@@ -1628,8 +1828,73 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   }
 }
 
+/* Compact Mobile: Below 640px */
+@media (max-width: 640px) {
+  .btn-text-full {
+    display: none;
+  }
+
+  .btn-text-mobile {
+    display: inline;
+  }
+
+  .nav-cta-btn {
+    padding: 0.38rem 0.68rem;
+    font-size: 0.82rem;
+  }
+
+  .nav-return-btn {
+    padding: 0.38rem 0.68rem;
+    font-size: 0.82rem;
+  }
+}
+
 /* Small Mobile: Below 480px */
 @media (max-width: 480px) {
+  .nav-inner {
+    padding: 0.55rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .brand-title {
+    font-size: 1.08rem;
+  }
+
+  .brand-mark {
+    gap: 0.45rem;
+  }
+
+  .brand-logo-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .nav-actions {
+    gap: 0.35rem;
+  }
+
+  .status-pill {
+    padding: 0.2rem 0.45rem;
+    font-size: 0.68rem;
+    gap: 0.3rem;
+  }
+
+  .nav-cta-btn {
+    padding: 0.35rem 0.55rem;
+    font-size: 0.78rem;
+  }
+
+  .nav-return-btn {
+    padding: 0.35rem 0.55rem;
+    font-size: 0.78rem;
+  }
+
+  .mobile-menu-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0.25rem;
+  }
+
   .hero-title {
     font-size: 1.95rem;
   }
@@ -1647,5 +1912,56 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
     flex-direction: column;
     align-items: flex-start;
     gap: 0.25rem;
+  }
+}
+
+/* Tiny Mobile Viewports: Below 360px */
+@media (max-width: 360px) {
+  .nav-inner {
+    padding: 0.5rem 0.5rem;
+    gap: 0.35rem;
+  }
+
+  .brand-title {
+    font-size: 0.98rem;
+  }
+
+  .brand-mark {
+    gap: 0.35rem;
+  }
+
+  .brand-logo-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .nav-actions {
+    gap: 0.25rem;
+  }
+
+  /* Compact dot-only pill on narrow 320px devices */
+  .status-label-mobile {
+    display: none;
+  }
+
+  .status-pill {
+    padding: 0.25rem;
+    min-width: 20px;
+    justify-content: center;
+    border-radius: 50%;
+  }
+
+  .status-retry-link {
+    display: none;
+  }
+
+  .nav-cta-btn {
+    padding: 0.3rem 0.45rem;
+    font-size: 0.74rem;
+  }
+
+  .nav-return-btn {
+    padding: 0.3rem 0.45rem;
+    font-size: 0.74rem;
   }
 }

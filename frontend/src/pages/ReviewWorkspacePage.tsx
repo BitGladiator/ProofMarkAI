@@ -262,46 +262,63 @@ export const ReviewWorkspacePage: React.FC<ReviewWorkspacePageProps> = ({
       {/* 1. Header Bar */}
       <header className="editorial-header">
         <div className="nav-inner">
-          <div className="brand-mark" onClick={() => navigate('/')} role="button" tabIndex={0}>
-            <ShieldLogoIcon size={26} />
+          <div
+            className="brand-mark"
+            onClick={() => navigate('/')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                navigate('/');
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label="ProofMark AI Home"
+          >
+            <ShieldLogoIcon className="brand-logo-icon" size={26} />
             <span className="brand-title">ProofMark AI</span>
           </div>
 
           <div className="nav-actions">
             <div className="status-pill-wrap" title="Engine Connection Status">
               {backendStatus === 'connected' && (
-                <span className="status-pill connected">
+                <span className="status-pill connected" title="Engine Online">
                   <span className="status-dot"></span>
-                  Engine Online
+                  <span className="status-label-full">Engine Online</span>
+                  <span className="status-label-mobile">Online</span>
                 </span>
               )}
               {backendStatus === 'disconnected' && (
-                <span className="status-pill disconnected">
+                <span className="status-pill disconnected" title="Engine Offline">
                   <span className="status-dot"></span>
-                  Engine Offline
+                  <span className="status-label-full">Engine Offline</span>
+                  <span className="status-label-mobile">Offline</span>
                   <button
                     type="button"
                     className="status-retry-link"
                     onClick={onRetryConnection}
+                    title="Retry connection"
                   >
                     Retry
                   </button>
                 </span>
               )}
               {backendStatus === 'checking' && (
-                <span className="status-pill checking">
+                <span className="status-pill checking" title="Connecting to Review Engine...">
                   <span className="status-dot"></span>
-                  Checking...
+                  <span className="status-label-full">Checking...</span>
+                  <span className="status-label-mobile">Checking</span>
                 </span>
               )}
             </div>
 
             <button
               type="button"
-              className="btn-secondary"
+              className="btn-secondary nav-return-btn"
               onClick={() => navigate('/')}
             >
-              &larr; Return Home
+              <span className="btn-text-full">&larr; Return Home</span>
+              <span className="btn-text-mobile">&larr; Home</span>
             </button>
           </div>
         </div>

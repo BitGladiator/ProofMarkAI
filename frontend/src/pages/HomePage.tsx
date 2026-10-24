@@ -118,6 +118,30 @@ export const HomePage: React.FC<HomePageProps> = ({
     return () => clearTimeout(timer);
   }, []);
 
+  // Close mobile drawer on Escape key or on window resize above 768px
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    const handleResize = () => {
+      if (window.innerWidth > 768) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [mobileMenuOpen]);
+
   const handleAcceptSuggestion = (finding: Finding) => {
     if (!finding.suggestion || !finding.excerpt) return;
     const updated = liveExcerpt.replace(finding.excerpt, finding.suggestion);
@@ -141,8 +165,20 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 1. Global Editorial Navigation */}
       <header className="editorial-header">
         <div className="nav-inner">
-          <div className="brand-mark" onClick={() => navigate('/')} role="button" tabIndex={0}>
-            <ShieldLogoIcon size={26} />
+          <div
+            className="brand-mark"
+            onClick={() => navigate('/')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                navigate('/');
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label="ProofMark AI Home"
+          >
+            <ShieldLogoIcon className="brand-logo-icon" size={26} />
             <span className="brand-title">ProofMark AI</span>
           </div>
 
@@ -175,39 +211,44 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div className="nav-actions">
             <div className="status-pill-wrap" title="Status of the ProofMark Review Engine">
               {backendStatus === 'connected' && (
-                <span className="status-pill connected">
+                <span className="status-pill connected" title="Engine Online">
                   <span className="status-dot"></span>
-                  Engine Online
+                  <span className="status-label-full">Engine Online</span>
+                  <span className="status-label-mobile">Online</span>
                 </span>
               )}
               {backendStatus === 'disconnected' && (
-                <span className="status-pill disconnected">
+                <span className="status-pill disconnected" title="Engine Offline">
                   <span className="status-dot"></span>
-                  Engine Offline
+                  <span className="status-label-full">Engine Offline</span>
+                  <span className="status-label-mobile">Offline</span>
                   <button
                     type="button"
                     className="status-retry-link"
                     onClick={onRetryConnection}
+                    title="Retry connection"
                   >
                     Retry
                   </button>
                 </span>
               )}
               {backendStatus === 'checking' && (
-                <span className="status-pill checking">
+                <span className="status-pill checking" title="Connecting to Review Engine...">
                   <span className="status-dot"></span>
-                  Connecting...
+                  <span className="status-label-full">Connecting...</span>
+                  <span className="status-label-mobile">Connecting</span>
                 </span>
               )}
             </div>
 
             <button
               type="button"
-              className="btn-primary"
+              className="btn-primary nav-cta-btn"
               onClick={() => navigate('/review')}
             >
-              Start reviewing
-              <ArrowRightIcon size={15} />
+              <span className="btn-text-full">Start reviewing</span>
+              <span className="btn-text-mobile">Review</span>
+              <ArrowRightIcon size={14} />
             </button>
 
             {/* Mobile Menu Button */}
@@ -215,49 +256,94 @@ export const HomePage: React.FC<HomePageProps> = ({
               type="button"
               className="mobile-menu-btn"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? <CloseIcon size={20} /> : <MenuIcon size={20} />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Dropdown Drawer */}
+        {/* Mobile Dropdown Drawer & Backdrop */}
         {mobileMenuOpen && (
-          <div className="mobile-drawer">
-            <button
-              type="button"
-              className="nav-link"
-              onClick={() => handleNavClick('#standards')}
-            >
-              Standards
-            </button>
-            <button
-              type="button"
-              className="nav-link"
-              onClick={() => handleNavClick('#workflow')}
-            >
-              Workflow
-            </button>
-            <button
-              type="button"
-              className="nav-link"
-              onClick={() => handleNavClick('#principles')}
-            >
-              Editorial Principle
-            </button>
-            <button
-              type="button"
-              className="btn-primary btn-block"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                navigate('/review');
-              }}
-            >
-              Start reviewing
-              <ArrowRightIcon size={15} />
-            </button>
-          </div>
+          <>
+            <div
+              className="mobile-drawer-backdrop"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-hidden="true"
+            />
+            <div className="mobile-drawer" role="dialog" aria-modal="true" aria-label="Mobile Navigation">
+              <nav className="mobile-drawer-links" aria-label="Sections">
+                <button
+                  type="button"
+                  className="mobile-nav-link"
+                  onClick={() => handleNavClick('#standards')}
+                >
+                  <span>Standards</span>
+                  <span className="mobile-nav-arrow" aria-hidden="true">&rarr;</span>
+                </button>
+                <button
+                  type="button"
+                  className="mobile-nav-link"
+                  onClick={() => handleNavClick('#workflow')}
+                >
+                  <span>Workflow</span>
+                  <span className="mobile-nav-arrow" aria-hidden="true">&rarr;</span>
+                </button>
+                <button
+                  type="button"
+                  className="mobile-nav-link"
+                  onClick={() => handleNavClick('#principles')}
+                >
+                  <span>Editorial Principle</span>
+                  <span className="mobile-nav-arrow" aria-hidden="true">&rarr;</span>
+                </button>
+              </nav>
+
+              <div className="mobile-drawer-footer">
+                <button
+                  type="button"
+                  className="btn-primary btn-block mobile-drawer-cta"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    navigate('/review');
+                  }}
+                >
+                  Start reviewing
+                  <ArrowRightIcon size={15} />
+                </button>
+
+                <div className="mobile-drawer-status-line">
+                  <span className="mobile-drawer-status-label">Engine status</span>
+                  {backendStatus === 'connected' && (
+                    <span className="status-pill connected">
+                      <span className="status-dot"></span>
+                      Engine Online
+                    </span>
+                  )}
+                  {backendStatus === 'disconnected' && (
+                    <span className="status-pill disconnected">
+                      <span className="status-dot"></span>
+                      Engine Offline
+                      <button
+                        type="button"
+                        className="status-retry-link"
+                        onClick={onRetryConnection}
+                      >
+                        Retry
+                      </button>
+                    </span>
+                  )}
+                  {backendStatus === 'checking' && (
+                    <span className="status-pill checking">
+                      <span className="status-dot"></span>
+                      Connecting...
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </header>
 
