@@ -1,13 +1,13 @@
-# ProofMark AI — Backend
+# ProofMark AI
 
-> **Brand-Governance Assistant Backend**  
-> Reviews draft marketing and communication content against supplied brand guidelines, approved terminology, and approved facts. Built with Node.js, Express, and Zod.
+> **Brand-Governance Assistant**  
+> Reviews draft marketing and communication content against supplied brand guidelines, approved terminology, and approved facts. Built with Node.js/Express backend and React/TypeScript/Vite frontend.
 
 ---
 
 ## 1. Project Overview
 
-ProofMark AI acts as an automated brand-governance assistant. It validates drafts against:
+ProofMark AI is an automated brand-governance assistant built for marketing and communication teams. It validates drafts against:
 1. **Deterministic Terminology Rules**: High-speed, word-boundary-aware matching for preferred/avoided vocabulary without LLM hallucination.
 2. **AI-Powered Tone & Voice Review**: Identifies hyperbole, aggressive tone, or voice deviations against brand guidelines.
 3. **Claim & Factual Consistency Review**: Cross-references assertions against approved facts.
@@ -15,37 +15,7 @@ ProofMark AI acts as an automated brand-governance assistant. It validates draft
 
 ---
 
-## 2. Architecture & Request Flow
-
-```
-Frontend / Client Request
-        │
-        ▼ (POST /api/review)
-┌─────────────────────────────────────────────────────────────┐
-│ Express Application & Middleware                           │
-│  - Correlation ID (x-request-id)                            │
-│  - CORS origin validation (FRONTEND_ORIGINS)                │
-│  - JSON body parsing & length constraints                   │
-└───────────────────────────────┬─────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────┐
-│ review_service.js (Orchestrator)                            │
-│  1. Zod Request Validation                                  │
-│  2. Reference Service (Resolves custom vs. sample fallback) │
-│  3. Deterministic Terminology Engine (rules/terminology.js) │
-│  4. AI Review Service (services/ai_review_service.js)       │
-│  5. Finding Merger & Deduplication (finding_merger.js)      │
-│  6. Zod Response Validation                                 │
-└───────────────────────────────┬─────────────────────────────┘
-                                │
-                                ▼
-     Canonical JSON Response (Findings + Review Status)
-```
-
----
-
-## 3. Folder Structure
+## 2. Architecture & Project Structure
 
 ```
 ProofMarkAI/
@@ -53,7 +23,7 @@ ProofMarkAI/
 │   ├── app/
 │   │   ├── core/
 │   │   │   ├── config.js         # Environment config & origin parsing
-│   │   │   └── logging.js        # Safe structured logging (no secret leakage)
+│   │   │   └── logging.js        # Structured logging with secret redaction
 │   │   ├── data/                 # Sample reference JSON datasets
 │   │   │   ├── approved_facts.json
 │   │   │   ├── approved_terms.json
@@ -65,7 +35,7 @@ ProofMarkAI/
 │   │   ├── rules/
 │   │   │   └── terminology.js    # Deterministic terminology engine
 │   │   ├── schemas/
-│   │   │   └── review.js         # Zod schemas for requests & responses
+│   │   │   └── review.js         # Strict Zod schemas for requests & responses
 │   │   ├── services/
 │   │   │   ├── ai_review_service.js  # AI LLM provider interface
 │   │   │   ├── finding_merger.js     # Deduplication & canonical ID assignment
@@ -78,112 +48,142 @@ ProofMarkAI/
 │   └── tests/
 │       ├── test_ai_failures.test.js  # Upstream AI timeouts, outages, & CORS
 │       ├── test_health.test.js       # Health endpoint & Swagger UI tests
-│       ├── test_helpers.js          # In-memory test dispatcher
+│       ├── test_helpers.js           # In-memory test dispatcher
 │       ├── test_review.test.js       # Validation, defaults & 5 draft examples
 │       └── test_terminology.test.js  # Word boundaries & casing adaptation
-├── .env.example
-├── package.json
+├── frontend/
+│   ├── src/
+│   │   ├── api/
+│   │   │   └── client.ts         # Reusable API client (fetch, timeouts, error mapping)
+│   │   ├── components/
+│   │   │   ├── DraftEditor.tsx   # Textarea, char count, sample loader, clear action
+│   │   │   ├── FindingsList.tsx  # Finding cards, category filtering, accept/dismiss actions
+│   │   │   ├── Header.tsx        # Wordmark & live backend connection badge
+│   │   │   └── ReferenceSettings.tsx # Collapsible brand standards editor
+│   │   ├── data/
+│   │   │   ├── samples.json      # Sample draft & reference datasets
+│   │   │   └── samples.ts        # Typed sample exports
+│   │   ├── tests/
+│   │   │   ├── actions.test.js   # Suggestion replacement & dismissal logic tests
+│   │   │   └── samples.test.js   # Schema & sample draft integrity tests
+│   │   ├── types/
+│   │   │   └── index.ts          # TypeScript interfaces for API contract
+│   │   ├── App.tsx               # Main UI orchestrator
+│   │   ├── index.css             # Polished, professional system styles
+│   │   └── main.tsx              # React DOM entry point
+│   ├── .env.example              # Frontend environment template
+│   ├── package.json              # Frontend dependencies (React, Vite, TS)
+│   ├── tsconfig.json             # TypeScript compiler config
+│   └── vite.config.ts            # Vite configuration (port 5173)
+├── .env.example                  # Backend environment template
+├── package.json                  # Root runner scripts
 └── README.md
 ```
 
 ---
 
-## 4. Technology Stack & Prerequisites
+## 3. Technology Stack
 
-- **Node.js**: v18.0.0 or newer (v20+ recommended)
-- **Framework**: Express 5
-- **Schema Validation**: Zod (v4)
-- **Environment**: dotenv
-- **Test Runner**: Node.js built-in test runner (`node --test`)
-- **Interactive Documentation**: Swagger UI at `/docs`
+- **Backend**: Node.js (v20+), Express 5, Zod (v4), dotenv, CORS
+- **Frontend**: React 18, TypeScript, Vite 5, Plain CSS
+- **Testing**: Node.js built-in test runner (`node --test`), Supertest
+- **Documentation**: Swagger UI at `http://127.0.0.1:8000/docs`
 
 ---
 
-## 5. Installation & Setup
+## 4. Quick Start & Setup
 
-1. **Clone or open the repository**:
-   ```bash
-   cd /path/to/ProofMarkAI
-   ```
+### A. Install Dependencies
 
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
+```bash
+# Install backend dependencies
+npm install
 
-3. **Configure environment variables**:
+# Install frontend dependencies
+cd frontend && npm install && cd ..
+```
+
+### B. Configure Environment Variables
+
+1. **Backend** (in project root):
    ```bash
    cp .env.example .env
    ```
+   *Defaults work out of the box (`PORT=8000`, `FRONTEND_ORIGINS=http://localhost:5173,http://localhost:3000`). If `AI_PROVIDER` / `AI_API_KEY` is not provided, the backend safely completes deterministic terminology checks and reports that AI checks were skipped.*
+
+2. **Frontend** (in `frontend/` directory):
+   ```bash
+   cp frontend/.env.example frontend/.env
+   ```
+   *Default: `VITE_API_BASE_URL=http://127.0.0.1:8000`.*
 
 ---
 
-## 6. Environment Variables
+## 5. Running the Application
 
-| Variable | Default | Purpose |
-| :--- | :--- | :--- |
-| `APP_ENV` | `development` | Application mode (`development` or `production`) |
-| `HOST` | `127.0.0.1` | Server binding host |
-| `PORT` | `8000` | Port for the HTTP server |
-| `FRONTEND_ORIGINS` | `http://localhost:5173,http://localhost:3000` | Allowed CORS origins (comma-separated or JSON array) |
-| `AI_PROVIDER` | `""` | AI provider name (e.g. `openai`, `gemini`, `groq`) |
-| `AI_API_KEY` | `""` | Provider API key. When empty, runs deterministic checks without failing |
-| `AI_MODEL` | `gpt-4o-mini` | Model identifier |
-| `AI_TIMEOUT_SECONDS`| `30` | Network timeout for AI calls |
-| `AI_BASE_URL` | `https://api.openai.com/v1` | OpenAI-compatible endpoint URL |
-| `MAX_DRAFT_LENGTH` | `20000` | Maximum character length for draft text |
-| `LOG_LEVEL` | `info` | Logging verbosity (`debug`, `info`, `warn`, `error`) |
+### Option 1: Run Services in Two Terminals (Recommended for Development)
 
----
-
-## 7. Running the Application
-
-### Start Development Server
+**Terminal 1 — Backend**:
 ```bash
-npm run dev
+npm run dev:backend
+# Or: npm start
 ```
+*Backend runs on `http://127.0.0.1:8000` (API docs at `http://127.0.0.1:8000/docs`).*
 
-### Start Production Server
+**Terminal 2 — Frontend**:
 ```bash
-npm start
+npm run dev:frontend
 ```
-The server will be available at `http://127.0.0.1:8000`.
+*Frontend runs on `http://localhost:5173`.*
 
-### Interactive API Documentation
-Open your browser to:
-```
-http://127.0.0.1:8000/docs
-```
-This loads an interactive Swagger UI rendered from `/api/openapi.json`.
+Open your browser to `http://localhost:5173` to test the integrated prototype.
 
 ---
 
-## 8. Running Automated Tests
+## 6. Running Automated Tests
 
-Run the full suite using the built-in Node.js test runner:
+Run the complete test suite across backend and frontend:
+
 ```bash
-npm test
+npm run test:all
 ```
 
-### Test Coverage Highlights
-- **Health**: `/api/health` schema, credential leakage prevention, correlation ID header, `/docs` HTML.
-- **Deterministic Terminology**: Avoid terms, case adaptation (`Consumer` $\to$ `Customer`), word boundaries (no false positives for `consumerism`), multi-word phrases, empty inputs.
-- **Review Endpoint**: 422 for missing, empty, whitespace-only, oversized drafts; malformed or duplicate reference IDs.
-- **5 Representative Draft Examples**:
-  1. *Terminology violation*: Flags `consumer` and recommends `customer`.
-  2. *Clean draft*: Zero findings and clean summary.
-  3. *Tone & hyperbole*: Catches superlatives via mocked AI.
-  4. *Unverified claim*: Flags unsupported claims for human verification without fabricating evidence IDs.
-  5. *Composite multi-rule*: Merges terminology, tone, and factual claims into canonical `F-001...` sequence.
-- **Resilience**: 504 timeouts, 429 rate limits, 502/503 provider outages, malformed LLM responses, and CORS rejections.
+Or run suites individually:
+```bash
+# Run backend tests (32 tests: health, terminology, review, failure resilience)
+npm run test:backend
+
+# Run frontend tests (7 tests: actions, suggestion replacement, sample integrity)
+npm run test:frontend
+```
 
 ---
 
-## 9. API Reference
+## 7. End-to-End User Flow
 
-### A. Health Check
-`GET /api/health`
+1. **Header Connection Indicator**: On load, the frontend queries `GET /api/health`. A badge indicates `"Connected"` with a green dot (or `"Disconnected"` with a Retry action if the backend is down).
+2. **Draft Editor**:
+   - Type or paste draft copy.
+   - Click **"Load sample"** to test a realistic marketing draft containing terminology issues (`consumer`, `magic bot`), hyperbole, and exaggerated claims.
+   - Click **"Clear"** to reset (with confirmation if text is present).
+3. **Brand Standards & Settings**:
+   - By default, uses the backend's bundled profile.
+   - Toggle to **"Custom reference rules"** to edit guidelines, terminology rules, or approved facts in JSON format with live syntax validation.
+4. **Review Content**:
+   - Click **"Review content"**. The frontend sends the payload to `POST /api/review`.
+   - Results are displayed on the right/bottom panel with severity badges (Low/Medium/High), confidence ratings, explanations, and evidence IDs.
+5. **Accept Suggestions**:
+   - Click **"Accept suggestion"** on any finding to automatically update the draft text in the editor.
+6. **Dismiss Findings**:
+   - Click **"Dismiss"** to collapse or dim the finding (or click **"Undo dismiss"** to restore it).
+7. **Re-Review**:
+   - After accepting suggestions or editing, click **"Review content"** again to run an updated scan.
 
+---
+
+## 8. API Contract Summary
+
+### `GET /api/health`
 **Response (`200 OK`)**:
 ```json
 {
@@ -192,46 +192,24 @@ npm test
 }
 ```
 
----
-
-### B. Review Draft
-`POST /api/review`
-
-**Headers**:
-- `Content-Type: application/json`
-- `x-request-id` *(optional correlation ID)*
-
-**Request Body**:
+### `POST /api/review`
+**Request Payload**:
 ```json
 {
   "draft_text": "Our product is the best in the world for every consumer.",
   "brand_guidelines": [
-    {
-      "id": "VOICE-01",
-      "text": "Use clear, friendly, and professional language without unsubstantiated superlatives."
-    }
+    { "id": "VOICE-01", "text": "Use clear, friendly, and professional language." }
   ],
   "approved_terms": [
-    {
-      "id": "TERM-01",
-      "preferred": "customer",
-      "avoid": ["consumer"]
-    }
+    { "id": "TERM-01", "preferred": "customer", "avoid": ["consumer"] }
   ],
   "approved_facts": [
-    {
-      "id": "FACT-01",
-      "text": "The service is available in 10 regions."
-    }
+    { "id": "FACT-01", "text": "The service is available in 10 regions." }
   ]
 }
 ```
 
-#### Reference Fallback Policy
-- **Omitted References**: If `brand_guidelines`, `approved_terms`, or `approved_facts` are omitted from the request, the backend loads the bundled sample datasets from `backend/app/data/`.
-- **Explicit Empty List (`[]`)**: If the client sends `[]`, the backend respects it as an empty set and does **not** inject sample data.
-
-**Response (`200 OK`)**:
+**Response Payload (`200 OK`)**:
 ```json
 {
   "findings": [
@@ -258,7 +236,8 @@ npm test
 
 ---
 
-### C. Error Responses
+## 9. Limitations & Integration Status
+
 
 All errors return a uniform format:
 ```json
@@ -326,4 +305,3 @@ if (!response.ok) {
   console.log(data.findings);
 }
 ```
->>>>>>> origin/karan-backend
