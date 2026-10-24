@@ -1,11 +1,26 @@
 import { useState } from "react";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const GUIDELINE_SETS = {
+  all: { label: "All brand voice rules (default)", items: null },
+  clear: {
+    label: "Clear and friendly language",
+    items: [{ id: "VOICE-01", text: "Use clear, friendly, and professional language without hyperbole or unsubstantiated superlatives." }],
+  },
+  respectful: {
+    label: "Inclusive and respectful tone",
+    items: [{ id: "VOICE-02", text: "Write in an inclusive, respectful, and direct tone. Avoid high-pressure sales tactics or alarmist framing." }],
+  },
+  honest: {
+    label: "Honest claims only",
+    items: [{ id: "VOICE-03", text: "Maintain brand honesty: do not claim features, outcomes, or timelines that are not verified." }],
+  },
+};
 function App() {
   const [draft, setDraft] = useState("");
   const [message, setMessage] = useState("");
   const [findings, setFindings] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [guideline, setGuideline] = useState("General");
+  const [guideline, setGuideline] = useState("all");
   const [error, setError] = useState("");
   const severityColors = {
     High: "text-red-400",
@@ -24,10 +39,14 @@ function App() {
     setMessage("");
     setFindings([]);
     try {
+      const requestBody = { draft_text: draft };
+      if (GUIDELINE_SETS[guideline].items) {
+        requestBody.brand_guidelines = GUIDELINE_SETS[guideline].items;
+      }
       const response = await fetch(API_URL + "/api/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ draft_text: draft, guideline: guideline }),
+        body: JSON.stringify(requestBody),
       });
       if (!response.ok) {
         throw new Error("Server error");
@@ -44,7 +63,7 @@ function App() {
     setLoading(false);
   }
   function handleSample() {
-    setDraft("This is a sample draft to test the review button.");
+    setDraft("Our consumer platform and AI robot help every consumer review content.");
   }
   function handleReviewAgain() {
     handleClick();
@@ -75,9 +94,11 @@ function App() {
           onChange={(e) => setGuideline(e.target.value)}
           className="mb-3 w-full rounded border border-slate-500 bg-slate-800 p-2"
         >
-          <option value="General">General</option>
-          <option value="Formal">Formal</option>
-          <option value="Friendly">Friendly</option>
+        {Object.entries(GUIDELINE_SETS).map(([key, set]) => (
+        <option key={key} value={key}>
+          {set.label}
+        </option>
+        ))}
         </select>
         <textarea
           value={draft}
@@ -127,9 +148,11 @@ function App() {
           {findings.length > 0 && findings.length + " finding(s) to review"}
         </p>
         {!message && !error && !loading && findings.length === 0 && (
-          <p className="mt-4 text-center text-slate-300">
-            Paste a draft and click Review to see findings.
-          </p>
+        <p className="mt-4 text-center text-slate-300">
+          {draft.trim() === ""
+            ? "Paste a draft and click Review to see findings."
+            : "Click Review again to check your updated draft."}
+       </p>
         )}
         {findings.map((f, i) => (
           <section key={i} className="mt-4 rounded border border-slate-500 p-4">
@@ -141,12 +164,13 @@ function App() {
               Excerpt: <mark>{f.excerpt}</mark>
             </p>
             <p>Why: {f.explanation}</p>
-            <p>Source: {f.evidence}</p>
-            <p>Suggested rewrite: {f.suggestion}</p>
+            <p>Source: {f.evidence_ids && f.evidence_ids.length > 0 ? f.evidence_ids.join(", ") : "None"}</p>
+            <p>Suggested rewrite: {f.suggestion || "No rewrite suggested. Please edit the draft yourself."}</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <button
+            <button
                 onClick={() => handleAccept(i)}
-                className="rounded bg-blue-600 px-3 py-1 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-white"
+                disabled={!f.suggestion}
+                className="rounded bg-blue-600 px-3 py-1 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-white disabled:opacity-50"
               >
                 Accept suggestion
               </button>

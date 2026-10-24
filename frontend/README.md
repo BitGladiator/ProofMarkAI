@@ -21,8 +21,8 @@ VITE_API_URL=http://localhost:8000
 ```
 
 Change the URL to wherever the backend runs, then restart `npm run dev`.
-The app calls `POST {VITE_API_URL}/api/review` with `{ "draft": "...", "guideline": "..." }`
-and expects `{ "findings": [ { "category", "severity", "excerpt", "explanation", "evidence", "suggestion" } ] }`.
+The app calls `POST {VITE_API_URL}/api/review` with `{ "draft_text": "...", "brand_guidelines": [ { "id", "text" } ] }`
+and expects `{ "findings": [ { "category", "severity", "excerpt", "explanation", "evidence_ids", "suggestion" } ] }`.
 
 ## How to use
 
