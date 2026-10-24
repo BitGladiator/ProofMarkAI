@@ -41,6 +41,14 @@ function App() {
   function handleSample() {
     setDraft("This is a sample draft to test the review button.");
   }
+  function handleAccept(index) {
+    const f = findings[index];
+    setDraft(draft.replace(f.excerpt, f.suggestion));
+    setFindings(findings.filter((item, i) => i !== index));
+  }
+  function handleDismiss(index) {
+    setFindings(findings.filter((item, i) => i !== index));
+  }
   return (
     <div>
       <h1>ProofMark AI</h1>
@@ -57,14 +65,18 @@ function App() {
       <button onClick={handleSample}>Load sample</button>
       <p>{message}</p>
       {findings.map((f, i) => (
-      <div key={i} style={{ border: "1px solid gray", margin: "8px", padding: "8px" }}>
-          <strong>{f.type}</strong>
+        <div key={i} style={{ border: "1px solid gray", margin: "8px", padding: "8px" }}>
+          <strong>{f.category}</strong>
           <span style={{ color: severityColors[f.severity], marginLeft: "8px" }}>
             {f.severity}
           </span>
-          <p>Original: {f.original}</p>
-          <p>Suggestion: {f.suggestion}</p>
-      </div>
+          <p>Excerpt: {f.excerpt}</p>
+          <p>Why: {f.explanation}</p>
+          <p>Source: {f.evidence}</p>
+          <p>Suggested rewrite: {f.suggestion}</p>
+          <button onClick={() => handleAccept(i)}>Accept suggestion</button>
+          <button onClick={() => handleDismiss(i)}>Dismiss</button>
+        </div>
       ))}
     </div>
   );
