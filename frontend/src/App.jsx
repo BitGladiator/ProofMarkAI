@@ -6,6 +6,7 @@ function App() {
   const [findings, setFindings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [guideline, setGuideline] = useState("General");
+  const [error, setError] = useState("");
   const severityColors = {
     High: "text-red-400",
     Medium: "text-amber-400",
@@ -13,30 +14,33 @@ function App() {
   };
   async function handleClick() {
     if (draft.trim() === "") {
-      setMessage("Please type something first");
+      setError("Please type something first");
+      setMessage("");
       setFindings([]);
       return;
     }
-
     setLoading(true);
+    setError("");
     setMessage("");
     setFindings([]);
-
     try {
       const response = await fetch(API_URL + "/api/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ draft: draft, guideline: guideline }),
       });
-      const data = await response.json();
-      setFindings(data.findings);
-      if (data.findings.length === 0) {
-        setMessage("No issues found");
+      if (!response.ok) {
+        throw new Error("Server error");
       }
-    } catch (error) {
-      setMessage("Could not reach the review service. Please try again.");
+      const data = await response.json();
+      const list = data.findings || [];
+      setFindings(list);
+      if (list.length === 0) {
+        setMessage("No issues found for this guideline.");
+      }
+    } catch (err) {
+      setError("Could not get a review right now. Please check the backend is running and try again.");
     }
-
     setLoading(false);
   }
   function handleSample() {
@@ -47,6 +51,11 @@ function App() {
   }
   function handleAccept(index) {
     const f = findings[index];
+    if (!draft.includes(f.excerpt)) {
+      setError("That text is no longer in your draft, so the suggestion could not be applied.");
+      return;
+    }
+    setError("");
     setDraft(draft.replace(f.excerpt, f.suggestion));
     setFindings(findings.filter((item, i) => i !== index));
   }
@@ -57,7 +66,6 @@ function App() {
     <div className="min-h-screen bg-slate-900 text-slate-100">
       <main className="mx-auto max-w-2xl p-4">
         <h1 className="mb-4 text-center text-3xl font-bold">ProofMark AI</h1>
-
         <label htmlFor="guideline" className="mb-1 block text-sm">
           Brand guideline
         </label>
@@ -76,9 +84,11 @@ function App() {
           onChange={(e) => setDraft(e.target.value)}
           rows={8}
           aria-label="Draft content"
+          maxLength={5000}
           placeholder="Paste your draft here"
           className="w-full rounded border border-slate-500 bg-slate-800 p-2"
         />
+        <p className="mt-1 text-right text-sm text-slate-400">{draft.length} / 5000</p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             onClick={handleClick}
@@ -95,16 +105,28 @@ function App() {
           </button>
           <button
             onClick={handleReviewAgain}
-            disabled={loading || findings.length === 0}
+            disabled={loading || draft.trim() === ""}
             className="rounded bg-slate-700 px-4 py-2 hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-white disabled:opacity-50"
           >
             Review again
           </button>
         </div>
+               {loading && (
+          <p className="mt-4 flex items-center justify-center gap-2" aria-live="polite">
+            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            Reviewing your draft, please wait...
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="mt-4 rounded border border-red-400 p-3 text-center text-red-300">
+            {error}
+          </p>
+        )}
         <p role="status" className="mt-4 text-center">
           {message}
+          {findings.length > 0 && findings.length + " finding(s) to review"}
         </p>
-        {!message && !loading && findings.length === 0 && (
+        {!message && !error && !loading && findings.length === 0 && (
           <p className="mt-4 text-center text-slate-300">
             Paste a draft and click Review to see findings.
           </p>
@@ -137,9 +159,6 @@ function App() {
             </div>
           </section>
         ))}
-        <p className="mt-6 text-sm text-slate-400">
-          Suggestions are for you to accept or dismiss. The AI does not give final approval.
-        </p>
       </main>
     </div>
   );

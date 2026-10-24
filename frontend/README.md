@@ -1,6 +1,6 @@
 # ProofMark AI Frontend
 
-React + Vite frontend for reviewing drafts against brand guidelines.
+React + Vite + Tailwind CSS frontend for reviewing drafts against brand guidelines.
 
 ## Run the frontend
 
@@ -21,7 +21,8 @@ VITE_API_URL=http://localhost:8000
 ```
 
 Change the URL to wherever the backend runs, then restart `npm run dev`.
-The app calls `POST {VITE_API_URL}/api/review` with `{ "draft": "...", "guideline": "..." }`.
+The app calls `POST {VITE_API_URL}/api/review` with `{ "draft": "...", "guideline": "..." }`
+and expects `{ "findings": [ { "category", "severity", "excerpt", "explanation", "evidence", "suggestion" } ] }`.
 
 ## How to use
 
@@ -29,3 +30,4 @@ The app calls `POST {VITE_API_URL}/api/review` with `{ "draft": "...", "guidelin
 2. Click **Review** to see findings.
 3. Use **Accept suggestion** to update the draft, **Dismiss** to remove a finding, or **Review again** to re-check the draft.
 
+These are user actions; nothing here is final approval by the AI.
