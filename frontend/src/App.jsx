@@ -7,9 +7,9 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [guideline, setGuideline] = useState("General");
   const severityColors = {
-    High: "red",
-    Medium: "orange",
-    Low: "green",
+    High: "#f87171",
+    Medium: "#fbbf24",
+    Low: "#4ade80",
   };
   async function handleClick() {
     if (draft.trim() === "") {
@@ -54,7 +54,7 @@ function App() {
     setFindings(findings.filter((item, i) => i !== index));
   }
   return (
-    <div>
+   <div style={{ maxWidth: "700px", margin: "0 auto", padding: "16px" }}>
       <h1>ProofMark AI</h1>
       <label htmlFor="guideline">Brand guideline: </label>
       <select
@@ -72,6 +72,7 @@ function App() {
         onChange={(e) => setDraft(e.target.value)}
         rows={8}
         aria-label="Draft content"
+        style={{ width: "100%", boxSizing: "border-box" }}
         placeholder="Paste your draft here"
       />
       <br />
@@ -82,7 +83,7 @@ function App() {
       <button onClick={handleReviewAgain} disabled={loading || findings.length === 0}>
         Review again
       </button>
-      <p>{message}</p>
+      <p role="status">{message}</p>
       {findings.map((f, i) => (
         <div key={i} style={{ border: "1px solid gray", margin: "8px", padding: "8px" }}>
           <strong>{f.category}</strong>
