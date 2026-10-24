@@ -36,7 +36,7 @@ function App() {
       const list = data.findings || [];
       setFindings(list);
       if (list.length === 0) {
-        setMessage("No issues found for this guideline.");
+        setMessage("No issues were flagged in this check. Please still review your draft yourself.");
       }
     } catch (err) {
       setError("Could not get a review right now. Please check the backend is running and try again.");
