@@ -5,7 +5,7 @@ services:
     plan: free
     region: oregon
     buildCommand: npm install
-    startCommand: node backend/app/main.js
+    startCommand: npm start
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:
