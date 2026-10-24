@@ -1,0 +1,15 @@
+{
+  "draft_content": "Our AI software guarantees 100% accuracy and zero errors.",
+  "brand_guidelines": [
+    {
+      "id": "BG001",
+      "rule": "Avoid exaggerated or absolute claims."
+    }
+  ],
+  "approved_facts": [
+    {
+      "id": "FACT001",
+      "fact": "The AI software achieved 92% accuracy during internal testing."
+    }
+  ]
+}

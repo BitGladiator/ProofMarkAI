@@ -1,0 +1,19 @@
+{
+  "draft_content": "Get unlimited access to our platform for just Rs. 299 per month.",
+  "brand_guidelines": [
+    {
+      "id": "BG001",
+      "rule": "All pricing information must match approved product details."
+    }
+  ],
+  "approved_facts": [
+    {
+      "id": "FACT001",
+      "fact": "The platform subscription costs Rs. 499 per month."
+    },
+    {
+      "id": "FACT002",
+      "fact": "The subscription includes a maximum of 100 AI requests per month."
+    }
+  ]
+}

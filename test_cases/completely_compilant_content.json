@@ -1,0 +1,19 @@
+{
+  "draft_content": "Our AI Customer Assistant helps businesses respond to customer queries efficiently.",
+  "brand_guidelines": [
+    {
+      "id": "BG001",
+      "rule": "Maintain a professional and informative tone."
+    },
+    {
+      "id": "BG002",
+      "rule": "Always use the product name 'AI Customer Assistant'."
+    }
+  ],
+  "approved_facts": [
+    {
+      "id": "FACT001",
+      "fact": "The AI Customer Assistant helps businesses respond to customer queries."
+    }
+  ]
+}

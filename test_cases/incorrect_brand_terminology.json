@@ -1,0 +1,19 @@
+  {
+    "draft_content": "Our chatbot uses artificial intelligence to answer customer questions.",
+  "brand_guidelines": [
+    {
+      "id": "BG001",
+      "rule": "Always refer to the product as 'AI Customer Assistant', not 'chatbot'."
+    },
+    {
+      "id": "BG002",
+      "rule": "Use clear and professional language."
+    }
+  ],
+  "approved_facts": [
+    {
+      "id": "FACT001",
+      "fact": "The AI Customer Assistant answers customer queries using artificial intelligence."
+    }
+  ]
+}
