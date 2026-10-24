@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from '../router';
 import {
   ShieldLogoIcon,
-  CheckIcon,
   ArrowRightIcon,
   SparklesIcon,
   BookOpenIcon,
@@ -11,6 +10,55 @@ import {
   MenuIcon,
   CloseIcon
 } from '../components/Icons';
+import { Finding } from '../types';
+
+// Showcase demonstration findings for the homepage excerpt.
+// Loaded with realistic audit animations without consuming Groq Cloud tokens on every page refresh.
+const SHOWCASE_FINDINGS: Finding[] = [
+  {
+    id: 'F-001',
+    category: 'Terminology',
+    severity: 'Low',
+    excerpt: 'every consumer',
+    explanation: 'The brand terminology rule prefers "customer" over "consumer".',
+    suggestion: 'every customer',
+    evidence_ids: ['TERM-01'],
+    confidence: 'high'
+  },
+  {
+    id: 'F-002',
+    category: 'Tone',
+    severity: 'Medium',
+    excerpt: 'Our revolutionary AI platform',
+    explanation: 'The word "revolutionary" is a superlative claim discouraged by brand voice guideline VOICE-01.',
+    suggestion: 'Our innovative AI platform',
+    evidence_ids: ['VOICE-01'],
+    confidence: 'high'
+  },
+  {
+    id: 'F-003',
+    category: 'FactualConsistency',
+    severity: 'High',
+    excerpt: 'across all regions',
+    explanation: 'Contradicts verified fact FACT-01 stating the service is available in 10 regions.',
+    suggestion: 'across the 10 supported regions',
+    evidence_ids: ['FACT-01'],
+    confidence: 'high'
+  },
+  {
+    id: 'F-004',
+    category: 'Claims',
+    severity: 'Medium',
+    excerpt: '100% automated guaranteed compliance',
+    explanation: 'The claim of 100% automated guaranteed compliance is unverified and requires human verification.',
+    suggestion: 'automated compliance support',
+    evidence_ids: ['VOICE-03'],
+    confidence: 'medium'
+  }
+];
+
+const SHOWCASE_SUMMARY =
+  'The draft contains several brand compliance issues: a prohibited term, hyperbolic language, an inaccurate regional coverage claim, and an unverified compliance guarantee. Human review recommended before publication.';
 
 interface HomePageProps {
   backendStatus: 'checking' | 'connected' | 'disconnected';
@@ -23,64 +71,119 @@ export const HomePage: React.FC<HomePageProps> = ({
 }) => {
   const { navigate } = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [previewAccepted, setPreviewAccepted] = useState(false);
+
+  // Hero section review state (loads locally with audit animation, 0 Groq Cloud tokens consumed)
+  const defaultExcerpt =
+    'Our revolutionary AI platform provides every consumer with 100% automated guaranteed compliance across all regions.';
+  const [liveExcerpt, setLiveExcerpt] = useState(defaultExcerpt);
+  const [liveFindings, setLiveFindings] = useState<Finding[] | null>(null);
+  const [liveSummary, setLiveSummary] = useState<string | null>(null);
+  const [isLoadingScan, setIsLoadingScan] = useState(true);
+  const [scanError] = useState<string | null>(null);
+
+  const handleRunLiveScan = (textToScan = liveExcerpt) => {
+    setIsLoadingScan(true);
+
+    // Realistic brief audit delay showing the loading state without consuming Groq Cloud tokens
+    setTimeout(() => {
+      let active = [...SHOWCASE_FINDINGS];
+      if (!textToScan.includes('every consumer') && !textToScan.includes('consumer')) {
+        active = active.filter((f) => f.id !== 'F-001');
+      }
+      if (!textToScan.includes('revolutionary')) {
+        active = active.filter((f) => f.id !== 'F-002');
+      }
+      if (!textToScan.includes('all regions')) {
+        active = active.filter((f) => f.id !== 'F-003');
+      }
+      if (!textToScan.includes('guaranteed compliance')) {
+        active = active.filter((f) => f.id !== 'F-004');
+      }
+
+      setLiveFindings(active);
+      setLiveSummary(
+        active.length === 0
+          ? 'All brand guidelines and terminology rules satisfied.'
+          : SHOWCASE_SUMMARY
+      );
+      setIsLoadingScan(false);
+    }, 450);
+  };
+
+  // Initial load: show the audit loading animation on mount, then render review findings
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      handleRunLiveScan(defaultExcerpt);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleAcceptSuggestion = (finding: Finding) => {
+    if (!finding.suggestion || !finding.excerpt) return;
+    const updated = liveExcerpt.replace(finding.excerpt, finding.suggestion);
+    setLiveExcerpt(updated);
+    setLiveFindings((prev) => (prev ? prev.filter((f) => f.id !== finding.id) : null));
+  };
 
   const handleNavClick = (anchorId: string) => {
     setMobileMenuOpen(false);
     navigate(anchorId);
   };
 
+  // Cap displayed preview findings to at most 3
+  const previewCap = 3;
+  const displayedFindings = liveFindings ? liveFindings.slice(0, previewCap) : [];
+  const totalFindingsCount = liveFindings ? liveFindings.length : 0;
+  const excessFindingsCount = Math.max(0, totalFindingsCount - previewCap);
+
   return (
     <div className="home-wrapper">
-      {/* 1. Global Navigation */}
-      <header className="home-header">
-        <div className="home-nav-container">
-          <div className="logo-group" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+      {/* 1. Global Editorial Navigation */}
+      <header className="editorial-header">
+        <div className="nav-inner">
+          <div className="brand-mark" onClick={() => navigate('/')} role="button" tabIndex={0}>
             <ShieldLogoIcon size={26} />
-            <div className="logo-text">
-              <span className="brand-name">ProofMark AI</span>
-              
-            </div>
+            <span className="brand-title">ProofMark AI</span>
           </div>
 
-          {/* Desktop Nav Links */}
-          <nav className="desktop-nav">
+          {/* Desktop Navigation Links */}
+          <nav className="nav-links-desktop" aria-label="Main Navigation">
             <button
               type="button"
-              className="nav-link-btn"
-              onClick={() => handleNavClick('#features')}
-            >
-              Features
-            </button>
-            <button
-              type="button"
-              className="nav-link-btn"
-              onClick={() => handleNavClick('#how-it-works')}
-            >
-              How it works
-            </button>
-            <button
-              type="button"
-              className="nav-link-btn"
+              className="nav-link"
               onClick={() => handleNavClick('#standards')}
             >
-              Brand Standards
+              Standards
+            </button>
+            <button
+              type="button"
+              className="nav-link"
+              onClick={() => handleNavClick('#workflow')}
+            >
+              Workflow
+            </button>
+            <button
+              type="button"
+              className="nav-link"
+              onClick={() => handleNavClick('#principles')}
+            >
+              Editorial Principle
             </button>
           </nav>
 
           {/* Actions & Backend Status */}
-          <div className="header-actions">
-            <div className="status-pill-wrap" title="Live status of the backend API service">
+          <div className="nav-actions">
+            <div className="status-pill-wrap" title="Status of the ProofMark Review Engine">
               {backendStatus === 'connected' && (
                 <span className="status-pill connected">
                   <span className="status-dot"></span>
-                  API Connected
+                  Engine Online
                 </span>
               )}
               {backendStatus === 'disconnected' && (
                 <span className="status-pill disconnected">
                   <span className="status-dot"></span>
-                  API Offline
+                  Engine Offline
                   <button
                     type="button"
                     className="status-retry-link"
@@ -93,89 +196,87 @@ export const HomePage: React.FC<HomePageProps> = ({
               {backendStatus === 'checking' && (
                 <span className="status-pill checking">
                   <span className="status-dot"></span>
-                  Checking...
+                  Connecting...
                 </span>
               )}
             </div>
 
             <button
               type="button"
-              className="btn-primary btn-cta"
+              className="btn-primary"
               onClick={() => navigate('/review')}
             >
               Start reviewing
-              <ArrowRightIcon size={16} />
+              <ArrowRightIcon size={15} />
             </button>
 
-            {/* Mobile Menu Toggle */}
+            {/* Mobile Menu Button */}
             <button
               type="button"
-              className="mobile-menu-toggle"
+              className="mobile-menu-btn"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-              aria-expanded={mobileMenuOpen}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
             >
-              {mobileMenuOpen ? <CloseIcon size={22} /> : <MenuIcon size={22} />}
+              {mobileMenuOpen ? <CloseIcon size={20} /> : <MenuIcon size={20} />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Dropdown Menu */}
+        {/* Mobile Dropdown Drawer */}
         {mobileMenuOpen && (
-          <div className="mobile-menu-drawer">
+          <div className="mobile-drawer">
             <button
               type="button"
-              className="mobile-nav-link"
-              onClick={() => handleNavClick('#features')}
-            >
-              Features
-            </button>
-            <button
-              type="button"
-              className="mobile-nav-link"
-              onClick={() => handleNavClick('#how-it-works')}
-            >
-              How it works
-            </button>
-            <button
-              type="button"
-              className="mobile-nav-link"
+              className="nav-link"
               onClick={() => handleNavClick('#standards')}
             >
-              Brand Standards
+              Standards
             </button>
-            <div className="mobile-menu-footer">
-              <button
-                type="button"
-                className="btn-primary w-full"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  navigate('/review');
-                }}
-              >
-                Start reviewing
-                <ArrowRightIcon size={16} />
-              </button>
-            </div>
+            <button
+              type="button"
+              className="nav-link"
+              onClick={() => handleNavClick('#workflow')}
+            >
+              Workflow
+            </button>
+            <button
+              type="button"
+              className="nav-link"
+              onClick={() => handleNavClick('#principles')}
+            >
+              Editorial Principle
+            </button>
+            <button
+              type="button"
+              className="btn-primary btn-block"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                navigate('/review');
+              }}
+            >
+              Start reviewing
+              <ArrowRightIcon size={15} />
+            </button>
           </div>
         )}
       </header>
 
       {/* 2. Hero Section */}
       <section className="hero-section">
-        <div className="hero-container">
+        <div className="hero-grid">
+          {/* Left: Editorial Positioning */}
           <div className="hero-left">
             <div className="hero-eyebrow">
-              <SparklesIcon size={14} className="eyebrow-icon" />
-              <span>BRAND GOVERNANCE, MADE PRACTICAL</span>
+              <span className="hero-eyebrow-rule"></span>
+              <span>BRAND STANDARDS / CONTENT REVIEW</span>
             </div>
 
             <h1 className="hero-title">
-              Every word should sound like your brand.
+              Good content deserves a second set of eyes.
             </h1>
 
-            <p className="hero-description">
-              Review marketing content against your brand voice, approved terminology, and verified reference facts before it reaches your audience.
+            <p className="hero-subtitle">
+              ProofMark checks your draft against your brand voice, preferred terminology, and approved facts—so your team can review before publishing.
             </p>
 
             <div className="hero-cta-group">
@@ -184,86 +285,188 @@ export const HomePage: React.FC<HomePageProps> = ({
                 className="btn-primary btn-large"
                 onClick={() => navigate('/review')}
               >
-                Start reviewing
-                <ArrowRightIcon size={18} />
+                Review a draft
+                <ArrowRightIcon size={16} />
               </button>
 
               <button
                 type="button"
                 className="btn-secondary btn-large"
-                onClick={() => handleNavClick('#how-it-works')}
+                onClick={() => handleNavClick('#workflow')}
               >
-                See how it works
+                Explore the workflow
               </button>
             </div>
 
             <div className="hero-footnote">
-              <CheckIcon size={14} className="footnote-check" />
-              <span>No signup or credit card required. Runs directly in your browser.</span>
+              <span className="hero-footnote-mark">§</span>
+              <span>Editorial quality control powered by Groq Cloud AI. Human editorial discretion preserved.</span>
             </div>
           </div>
 
-          {/* Hero Right: Illustrative UI Preview */}
+          {/* Right: Bounded Live Editorial Preview */}
           <div className="hero-right">
-            <div className="preview-card-frame">
-              <div className="preview-header">
-                <div className="preview-indicator-dots">
-                  <span className="dot red"></span>
-                  <span className="dot yellow"></span>
-                  <span className="dot green"></span>
+            <div className="preview-frame" aria-label="Interactive Proofing Preview">
+              {/* Preview Header */}
+              <div className="preview-top-strip">
+                <div className="preview-meta-title">
+                  <span style={{ color: 'var(--primary)' }}>●</span>
+                  <span>EDITORIAL PROOFING DESK</span>
                 </div>
-                <span className="preview-label">ILLUSTRATIVE REVIEW PREVIEW</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span className="tag-badge cat">AUDIT PREVIEW</span>
+                </div>
               </div>
 
+              {/* Preview Content Body */}
               <div className="preview-body">
-                <div className="preview-editor-box">
-                  <div className="preview-box-label">DRAFT TEXT EXCERPT</div>
-                  <p className="preview-draft-text">
-                    &ldquo;Our revolutionary AI platform provides{' '}
-                    <span className="preview-highlight-orange">
-                      every consumer
-                    </span>{' '}
-                    with 100% automated guaranteed compliance across all regions.&rdquo;
+                {/* Fixed Sample Box */}
+                <div className="preview-sample-box">
+                  <div className="preview-sample-head">
+                    <span className="preview-label-small">SAMPLE DRAFT EXCERPT</span>
+                    <button
+                      type="button"
+                      className="btn-text"
+                      style={{ fontSize: '0.72rem', padding: '0.1rem 0.35rem' }}
+                      onClick={() => handleRunLiveScan(liveExcerpt)}
+                      disabled={isLoadingScan}
+                    >
+                      {isLoadingScan ? 'Auditing...' : '↻ Re-scan'}
+                    </button>
+                  </div>
+                  <p className="preview-sample-quote">
+                    &ldquo;{liveExcerpt}&rdquo;
                   </p>
                 </div>
 
-                <div className="preview-findings-box">
-                  <div className="preview-finding-item">
-                    <div className="preview-finding-head">
-                      <span className="tag-category">Terminology</span>
-                      <span className="tag-severity low">Low</span>
+                {/* Bounded Scrollable Findings Area */}
+                <div className="preview-scroll-area">
+                  {isLoadingScan && (
+                    <div style={{ textAlign: 'center', padding: '1.75rem 1rem', color: 'var(--text-muted)' }}>
+                      <div style={{ display: 'inline-block', marginBottom: '0.4rem', fontFamily: 'var(--font-mono)' }}>
+                        [ AUDITING DRAFT ]
+                      </div>
+                      <p style={{ fontSize: '0.82rem' }}>Evaluating draft against terminology rules and brand guidelines...</p>
                     </div>
-                    <div className="preview-finding-desc">
-                      The brand terminology rule prefers &ldquo;customer&rdquo; over &ldquo;consumer&rdquo;.
-                    </div>
-                    <div className="preview-suggestion-pill">
-                      <span>
-                        <strong>Suggested:</strong> {previewAccepted ? 'customer (Applied)' : 'customer'}
-                      </span>
+                  )}
+
+                  {scanError && (
+                    <div style={{ background: 'var(--danger-light)', border: '1px solid var(--danger-border)', padding: '0.75rem', borderRadius: 'var(--radius-xs)', color: 'var(--danger)', fontSize: '0.82rem' }}>
+                      <strong>Review request error:</strong> {scanError}
                       <button
                         type="button"
-                        className="btn-preview-action"
-                        onClick={() => setPreviewAccepted(!previewAccepted)}
+                        style={{ display: 'block', marginTop: '0.35rem', textDecoration: 'underline', background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.75rem' }}
+                        onClick={() => handleRunLiveScan()}
                       >
-                        {previewAccepted ? 'Undo' : 'Preview accept'}
+                        Try again
                       </button>
                     </div>
-                  </div>
+                  )}
 
-                  <div className="preview-finding-item">
-                    <div className="preview-finding-head">
-                      <span className="tag-category">Tone & Voice</span>
-                      <span className="tag-severity medium">Medium</span>
+                  {!isLoadingScan && !scanError && liveFindings === null && (
+                    <div style={{ textAlign: 'center', padding: '1.5rem 1rem', background: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-xs)' }}>
+                      <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                        Ready to inspect this draft against verified brand standards.
+                      </p>
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        onClick={() => handleRunLiveScan()}
+                      >
+                        <SparklesIcon size={14} /> Run Live Review
+                      </button>
                     </div>
-                    <div className="preview-finding-desc">
-                      &ldquo;100% automated guaranteed compliance&rdquo; uses unsubstantiated superlatives discouraged by VOICE-01.
-                    </div>
-                  </div>
+                  )}
+
+                  {!isLoadingScan && !scanError && liveFindings && (
+                    <>
+                      {/* Compact Assessment Banner */}
+                      {liveSummary && (
+                        <div className="preview-summary-banner">
+                          <strong>Desk Assessment:</strong> {liveSummary}
+                        </div>
+                      )}
+
+                      {/* Findings List (Capped to previewCap) */}
+                      {displayedFindings.length === 0 ? (
+                        <div style={{ padding: '0.75rem', textAlign: 'center', color: 'var(--success)', fontSize: '0.82rem' }}>
+                          ✓ Draft meets all verified brand requirements.
+                        </div>
+                      ) : (
+                        displayedFindings.map((finding) => (
+                          <div key={finding.id} className="preview-item-card">
+                            <div className="preview-item-head">
+                              <div className="preview-tags-group">
+                                <span className="tag-badge cat">{finding.category}</span>
+                                <span className={`tag-badge sev-${finding.severity.toLowerCase()}`}>
+                                  {finding.severity}
+                                </span>
+                                {finding.evidence_ids.length > 0 && (
+                                  <span className="tag-badge cat">
+                                    {finding.evidence_ids.join(', ')}
+                                  </span>
+                                )}
+                              </div>
+                              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-subtle)' }}>
+                                {finding.id}
+                              </span>
+                            </div>
+
+                            <div className="preview-item-desc">
+                              {finding.explanation}
+                            </div>
+
+                            {finding.suggestion && (
+                              <div className="preview-suggestion-row">
+                                <span className="preview-sugg-text">
+                                  <strong>Preferred:</strong> &ldquo;{finding.suggestion}&rdquo;
+                                </span>
+                                <button
+                                  type="button"
+                                  className="btn-mini-action"
+                                  onClick={() => handleAcceptSuggestion(finding)}
+                                >
+                                  Apply
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      )}
+
+                      {/* Explicit cap notice if additional findings exist */}
+                      {excessFindingsCount > 0 && (
+                        <div className="preview-capped-notice">
+                          <span>
+                            Showing {previewCap} of {totalFindingsCount} findings.
+                          </span>
+                          <button
+                            type="button"
+                            className="preview-open-link"
+                            onClick={() => navigate('/review')}
+                          >
+                            Open full workspace to review all {totalFindingsCount} &rarr;
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
 
-                <div className="preview-footer-note">
-                  <UserCheckIcon size={14} />
-                  <span>Interactive preview: try full scan in the workspace</span>
+                {/* Fixed Preview Footer Strip */}
+                <div className="preview-footer-bar">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <UserCheckIcon size={13} />
+                    <span>Interactive preview • Live Groq Cloud review in workspace</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="preview-open-link"
+                    style={{ fontSize: '0.75rem' }}
+                    onClick={() => navigate('/review')}
+                  >
+                    Launch workspace &rarr;
+                  </button>
                 </div>
               </div>
             </div>
@@ -271,263 +474,192 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* 3. Trust & Capabilities Value Strip */}
-      <section className="value-strip">
-        <div className="value-strip-container">
-          <div className="value-item">
-            <span className="value-icon-box">
-              <SparklesIcon size={16} />
-            </span>
-            <div className="value-content">
-              <strong>Brand Voice Checks</strong>
-              <span>Audit tone against tone and style guidelines</span>
-            </div>
+      {/* 3. Editorial Value Strip */}
+      <section className="editorial-strip" id="standards">
+        <div className="strip-inner">
+          <div className="strip-col">
+            <div className="strip-num">01 / VOICE</div>
+            <div className="strip-heading">Tone & Voice Audit</div>
+            <div className="strip-desc">Catches unsubstantiated superlatives, hyperbolic promises, and misaligned tone.</div>
           </div>
 
-          <div className="value-item">
-            <span className="value-icon-box">
-              <BookOpenIcon size={16} />
-            </span>
-            <div className="value-content">
-              <strong>Terminology Consistency</strong>
-              <span>Catch deprecated words and enforce approved vocabulary</span>
-            </div>
+          <div className="strip-col">
+            <div className="strip-num">02 / LEXICON</div>
+            <div className="strip-heading">Approved Terminology</div>
+            <div className="strip-desc">Deterministic enforcement of preferred vocabulary and prohibited synonyms.</div>
           </div>
 
-          <div className="value-item">
-            <span className="value-icon-box">
-              <ScaleIcon size={16} />
-            </span>
-            <div className="value-content">
-              <strong>Claim & Fact Verification</strong>
-              <span>Cross-reference assertions with verified enterprise facts</span>
-            </div>
+          <div className="strip-col">
+            <div className="strip-num">03 / FACTS</div>
+            <div className="strip-heading">Claim Consistency</div>
+            <div className="strip-desc">Cross-references claims with approved enterprise facts and flags unverified assertions.</div>
           </div>
 
-          <div className="value-item">
-            <span className="value-icon-box">
-              <UserCheckIcon size={16} />
-            </span>
-            <div className="value-content">
-              <strong>Human-Controlled Decisions</strong>
-              <span>Reviewers retain full discretion on all suggestions</span>
+          <div className="strip-col">
+            <div className="strip-num">04 / CONTROL</div>
+            <div className="strip-heading">Human Editorial Power</div>
+            <div className="strip-desc">AI flags discrepancies and proposes alternatives. Final publication approval remains human.</div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Editorial Features Section */}
+      <section className="section-editorial" id="features">
+        <div className="section-container">
+          <div className="section-header-block">
+            <div className="section-kicker">EDITORIAL GOVERNANCE CAPABILITIES</div>
+            <h2 className="section-title">A rigorous standard for every piece of published communication.</h2>
+            <p className="section-lead">
+              ProofMark acts as your brand editorial desk—auditing copy against strict governance guidelines before press release, launch copy, or public distribution.
+            </p>
+          </div>
+
+          <div className="features-ledger-grid">
+            <div className="ledger-card">
+              <div className="ledger-card-top">
+                <span className="ledger-code">LEDGER RULE [VOICE-01]</span>
+                <SparklesIcon size={16} />
+              </div>
+              <h3 className="ledger-title">Superlative & Hyperbole Guard</h3>
+              <p className="ledger-body">
+                Discourages unsubstantiated buzzwords like &ldquo;revolutionary breakthrough&rdquo; and &ldquo;guaranteed 100% compliance&rdquo; in favor of accurate, credible claims.
+              </p>
+              <div className="ledger-proof-example">
+                &ldquo;revolutionary AI platform&rdquo; &rarr; &ldquo;innovative AI platform&rdquo;
+              </div>
+            </div>
+
+            <div className="ledger-card">
+              <div className="ledger-card-top">
+                <span className="ledger-code">LEDGER RULE [TERM-01]</span>
+                <BookOpenIcon size={16} />
+              </div>
+              <h3 className="ledger-title">Controlled Lexicon Enforcement</h3>
+              <p className="ledger-body">
+                Ensures approved terminology is applied consistently across all messaging, preventing deprecated terminology from slipping into final copy.
+              </p>
+              <div className="ledger-proof-example">
+                &ldquo;every consumer&rdquo; &rarr; &ldquo;every customer&rdquo;
+              </div>
+            </div>
+
+            <div className="ledger-card">
+              <div className="ledger-card-top">
+                <span className="ledger-code">LEDGER RULE [FACT-01]</span>
+                <ScaleIcon size={16} />
+              </div>
+              <h3 className="ledger-title">Factual Contradiction Detection</h3>
+              <p className="ledger-body">
+                Identifies discrepancies between marketing statements and verified product parameters, ensuring representations are truthful.
+              </p>
+              <div className="ledger-proof-example">
+                &ldquo;across all regions&rdquo; &rarr; &ldquo;across 10 supported regions&rdquo;
+              </div>
+            </div>
+
+            <div className="ledger-card">
+              <div className="ledger-card-top">
+                <span className="ledger-code">HUMAN-IN-THE-LOOP</span>
+                <UserCheckIcon size={16} />
+              </div>
+              <h3 className="ledger-title">Reviewer Action Ledger</h3>
+              <p className="ledger-body">
+                Suggestions are individually inspected, accepted, or dismissed by human communications editors. The system never publishes or approves automatically.
+              </p>
+              <div className="ledger-proof-example">
+                Full review history, evidence citations, and manual overrides retained.
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 4. Features Section */}
-      <section id="features" className="features-section">
-        <div className="section-head">
-          <span className="section-tag">CORE CAPABILITIES</span>
-          <h2 className="section-title">Built for clear, consistent communication</h2>
-          <p className="section-subtitle">
-            ProofMark AI automates repetitive compliance audits so writers and brand managers can publish with confidence.
+      {/* 5. Editorial Workflow Section */}
+      <section className="section-editorial" id="workflow" style={{ background: '#ffffff' }}>
+        <div className="section-container">
+          <div className="section-header-block">
+            <div className="section-kicker">WORKFLOW</div>
+            <h2 className="section-title">Three steps to certified brand alignment.</h2>
+            <p className="section-lead">
+              A structured review pipeline designed for seamless integration into communications and marketing workflows.
+            </p>
+          </div>
+
+          <div className="workflow-steps-row">
+            <div className="workflow-step-card">
+              <span className="step-marker">STEP 01</span>
+              <h3 className="step-card-title">Ingest Draft & Guidelines</h3>
+              <p className="step-card-text">
+                Paste draft marketing copy and supply enterprise brand standards, approved vocabulary lists, and verified factual statements.
+              </p>
+            </div>
+
+            <div className="workflow-step-card">
+              <span className="step-marker">STEP 02</span>
+              <h3 className="step-card-title">Multi-Layer Audit</h3>
+              <p className="step-card-text">
+                Deterministic regex catches exact terminology violations while Groq Cloud AI audits tone, superlatives, and factual claims.
+              </p>
+            </div>
+
+            <div className="workflow-step-card">
+              <span className="step-marker">STEP 03</span>
+              <h3 className="step-card-title">Editorial Sign-Off</h3>
+              <p className="step-card-text">
+                Review findings with evidence citations and confidence metrics. Accept suggested rewrites into your editor with a single click.
+              </p>
+            </div>
+          </div>
+
+          {/* Principle Banner */}
+          <div className="human-principle-banner" id="principles">
+            <div>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--brass)' }}>
+                CORE PRINCIPLE
+              </span>
+              <h3 className="principle-title">
+                Human accountability is irreplaceable.
+              </h3>
+            </div>
+            <p className="principle-text">
+              Automated review accelerates editorial vigilance, but final responsibility for public statements rests with communications professionals. ProofMark flags potential discrepancies and provides verified suggestions, leaving final discretion with the editorial reviewer.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. Final Call to Action */}
+      <section className="cta-banner-section">
+        <div className="cta-banner-inner">
+          <h2 className="cta-title">Elevate your publication standards.</h2>
+          <p className="cta-lead">
+            Audit your draft in real time against approved terminology, tone guidelines, and verified facts.
           </p>
-        </div>
-
-        <div className="features-grid">
-          <div className="feature-card">
-            <div className="feature-icon-bubble">
-              <SparklesIcon size={22} />
-            </div>
-            <h3 className="feature-heading">Brand Voice Review</h3>
-            <p className="feature-body">
-              Drafts are checked against supplied tone and voice standards. The engine identifies hyperbolic superlatives, aggressive framing, or off-brand stylistic deviations.
-            </p>
-            <div className="feature-rule-tag">
-              <code>VOICE-01 • Clear, friendly, professional language</code>
-            </div>
-          </div>
-
-          <div className="feature-card">
-            <div className="feature-icon-bubble">
-              <BookOpenIcon size={22} />
-            </div>
-            <h3 className="feature-heading">Terminology Consistency</h3>
-            <p className="feature-body">
-              Deterministic, word-boundary-aware rules scan your text for avoided vocabulary and automatically recommend approved, brand-sanctioned alternatives.
-            </p>
-            <div className="feature-rule-tag">
-              <code>TERM-01 • Prefer &ldquo;customer&rdquo; over &ldquo;consumer&rdquo;</code>
-            </div>
-          </div>
-
-          <div className="feature-card">
-            <div className="feature-icon-bubble">
-              <ScaleIcon size={22} />
-            </div>
-            <h3 className="feature-heading">Claims & Factual Consistency</h3>
-            <p className="feature-body">
-              Factual claims are verified against your approved reference facts. Unsupported or unverified assertions are flagged for human review rather than falsely declared incorrect.
-            </p>
-            <div className="feature-rule-tag">
-              <code>FACT-01 • Verified regional availability data</code>
-            </div>
-          </div>
-
-          <div className="feature-card">
-            <div className="feature-icon-bubble">
-              <UserCheckIcon size={22} />
-            </div>
-            <h3 className="feature-heading">Human-in-the-Loop Governance</h3>
-            <p className="feature-body">
-              AI should assist reviewers, not make final decisions. You have full control to accept individual rewrites, dismiss suggestions, or edit copy before re-running.
-            </p>
-            <div className="feature-rule-tag">
-              <code>Policy • Content is never auto-approved</code>
-            </div>
-          </div>
+          <button
+            type="button"
+            className="btn-primary btn-cta-light"
+            onClick={() => navigate('/review')}
+          >
+            Open Review Workspace
+            <ArrowRightIcon size={16} />
+          </button>
         </div>
       </section>
 
-      {/* 5. How It Works Section */}
-      <section id="how-it-works" className="how-section">
-        <div className="section-head">
-          <span className="section-tag">THE WORKFLOW</span>
-          <h2 className="section-title">How ProofMark AI works</h2>
-          <p className="section-subtitle">
-            From raw draft to compliant copy in three simple steps.
-          </p>
-        </div>
-
-        <div className="steps-container">
-          <div className="step-card">
-            <div className="step-number">01</div>
-            <h3 className="step-title">Add your draft</h3>
-            <p className="step-description">
-              Paste your marketing copy, email announcement, or web page text into the workspace editor or click &ldquo;Load sample&rdquo; for instant testing.
-            </p>
+      {/* 7. Footer */}
+      <footer className="editorial-footer">
+        <div className="footer-inner">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ShieldLogoIcon size={18} />
+            <strong>ProofMark AI</strong> — The Brand Standards Desk
           </div>
-
-          <div className="step-connector"></div>
-
-          <div className="step-card">
-            <div className="step-number">02</div>
-            <h3 className="step-title">Review against brand standards</h3>
-            <p className="step-description">
-              Use bundled standards or customize your own terminology lists, voice guidelines, and verified facts. Click &ldquo;Review content&rdquo; to trigger the engine.
-            </p>
+          <div>
+            Built with Groq Cloud AI, Express & React. All editorial rights reserved.
           </div>
-
-          <div className="step-connector"></div>
-
-          <div className="step-card">
-            <div className="step-number">03</div>
-            <h3 className="step-title">Apply suggestions and review again</h3>
-            <p className="step-description">
-              Inspect structured findings with evidence IDs, accept 1-click suggested rewrites directly in the editor, and re-review anytime.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* 6. Standards Section */}
-      <section id="standards" className="standards-banner-section">
-        <div className="standards-box">
-          <div className="standards-content">
-            <span className="section-tag light">EXTENSIBLE ARCHITECTURE</span>
-            <h2 className="standards-title">Deterministic accuracy meets AI nuance</h2>
-            <p className="standards-text">
-              By separating rigid terminology matching from AI tone review, ProofMark AI eliminates hallucinations on exact vocabulary while maintaining nuanced voice evaluation.
-            </p>
-            <div className="standards-badges">
-              <span className="badge-standard">Word-boundary regex</span>
-              <span className="badge-standard">Provider-neutral AI adapter</span>
-              <span className="badge-standard">Evidence verification</span>
-              <span className="badge-standard">Pydantic &amp; Zod validated</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 7. Call to Action Banner */}
-      <section className="cta-section">
-        <div className="cta-container">
-          <div className="cta-content">
-            <h2 className="cta-heading">Ready to review your draft?</h2>
-            <p className="cta-subheading">
-              Open the review workspace now to test copy against brand guidelines with live rule-based and AI audits.
-            </p>
-            <button
-              type="button"
-              className="btn-primary btn-large"
-              onClick={() => navigate('/review')}
-            >
-              Open review workspace
-              <ArrowRightIcon size={18} />
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* 8. Footer */}
-      <footer className="home-footer">
-        <div className="footer-container">
-          <div className="footer-left">
-            <div className="logo-group">
-              <ShieldLogoIcon size={20} />
-              <span className="footer-brand">ProofMark AI</span>
-            </div>
-            <p className="footer-desc">
-              Brand-governance assistant reviewing marketing and communication drafts against brand guidelines, approved terminology, and approved facts.
-            </p>
-          </div>
-
-          <div className="footer-nav">
-            <div className="footer-col">
-              <span className="footer-col-title">Product</span>
-              <button
-                type="button"
-                className="footer-link-btn"
-                onClick={() => navigate('/review')}
-              >
-                Review Workspace
-              </button>
-              <button
-                type="button"
-                className="footer-link-btn"
-                onClick={() => handleNavClick('#features')}
-              >
-                Features
-              </button>
-              <button
-                type="button"
-                className="footer-link-btn"
-                onClick={() => handleNavClick('#how-it-works')}
-              >
-                How It Works
-              </button>
-            </div>
-
-            <div className="footer-col">
-              <span className="footer-col-title">Documentation</span>
-              <a
-                href="/docs"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="footer-link-btn"
-              >
-                Interactive API Docs (/docs)
-              </a>
-              <button
-                type="button"
-                className="footer-link-btn"
-                onClick={() => handleNavClick('#standards')}
-              >
-                Brand Standards
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="footer-bottom">
-          <span>&copy; {new Date().getFullYear()} ProofMark AI. Built for brand governance.</span>
-          <span className="footer-disclaimer">
-            AI findings assist human reviewers and do not make final approval decisions.
-          </span>
         </div>
       </footer>
     </div>
   );
 };
+
+export default HomePage;

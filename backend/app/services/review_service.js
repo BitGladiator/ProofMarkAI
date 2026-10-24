@@ -35,6 +35,7 @@ export async function executeReview(payload, options = {}) {
   logger.info(`Terminology check identified ${terminologyFindings.length} issue(s)`);
 
   let aiFindings = [];
+  let aiReviewSummary = null;
   let aiCheckStatus = 'skipped';
   let aiStatusDetails = undefined;
 
@@ -44,13 +45,24 @@ export async function executeReview(payload, options = {}) {
 
   if (shouldRunAi) {
     try {
-      logger.info('Executing AI-powered tone and factual consistency review');
-      aiFindings = await reviewWithAi(
+      logger.info('Executing AI-powered brand review via Groq Cloud');
+      const aiResult = await reviewWithAi(
         draft_text,
         references.brand_guidelines,
+        references.approved_terms,
         references.approved_facts,
         options
       );
+
+      if (Array.isArray(aiResult)) {
+        aiFindings = aiResult;
+      } else if (aiResult && typeof aiResult === 'object') {
+        aiFindings = Array.isArray(aiResult.findings) ? aiResult.findings : [];
+        if (typeof aiResult.review_summary === 'string' && aiResult.review_summary.trim()) {
+          aiReviewSummary = aiResult.review_summary.trim();
+        }
+      }
+
       aiCheckStatus = 'completed';
     } catch (err) {
       logger.error(`AI review error: ${err.message}`, { code: err.code });
@@ -70,8 +82,8 @@ export async function executeReview(payload, options = {}) {
   // 5. Merge findings and remove genuine duplicates
   const mergedFindings = mergeFindings(terminologyFindings, aiFindings);
 
-  // 6. Generate concise review summary
-  const summary = generateReviewSummary(mergedFindings);
+  // 6. Review summary: prioritize live AI-generated assessment when AI review succeeded
+  const summary = aiReviewSummary || generateReviewSummary(mergedFindings);
 
   // 7. Assemble final response conforming to canonical schema
   const responseData = {

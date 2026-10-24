@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node backend/app/main.js",
+    "build": "npm --prefix frontend install && npm --prefix frontend run build",
     "dev": "node --watch backend/app/main.js",
     "test": "node --test backend/tests/*.test.js",
     "dev:backend": "node --watch backend/app/main.js",

@@ -1,9 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useRouter } from '../router';
 import {
   ShieldLogoIcon,
-  SparklesIcon,
-  CheckIcon
+  SparklesIcon
 } from '../components/Icons';
 import { submitReview, ApiError } from '../api/client';
 import {
@@ -42,6 +41,9 @@ export const ReviewWorkspacePage: React.FC<ReviewWorkspacePageProps> = ({
   const [dismissedFindingIds, setDismissedFindingIds] = useState<Set<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
+  // Stale request guard
+  const latestReviewIdRef = useRef<number>(0);
+
   // Brand standards settings
   const [useBundledProfile, setUseBundledProfile] = useState<boolean>(true);
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
@@ -59,6 +61,12 @@ export const ReviewWorkspacePage: React.FC<ReviewWorkspacePageProps> = ({
   const maxDraftLength = 20000;
   const isDraftEmpty = draftText.trim().length === 0;
   const isOverLimit = draftText.length > maxDraftLength;
+
+  // Word count helper
+  const wordCount = useMemo(() => {
+    const trimmed = draftText.trim();
+    return trimmed ? trimmed.split(/\s+/).length : 0;
+  }, [draftText]);
 
   // Determine if draft has been modified since the last review
   const isDraftModified =
@@ -84,7 +92,7 @@ export const ReviewWorkspacePage: React.FC<ReviewWorkspacePageProps> = ({
   const handleClearDraft = () => {
     if (draftText.trim().length > 30) {
       const confirmed = window.confirm(
-        'Are you sure you want to clear your draft? Unsaved edits will be lost.'
+        'Clear your draft? Unsaved edits will be lost.'
       );
       if (!confirmed) return;
     }
@@ -95,10 +103,11 @@ export const ReviewWorkspacePage: React.FC<ReviewWorkspacePageProps> = ({
     setDismissedFindingIds(new Set());
   };
 
-  // Run review action
+  // Run review action with concurrency guard
   const handleExecuteReview = async () => {
-    if (isDraftEmpty || isOverLimit) return;
+    if (isDraftEmpty || isOverLimit || isReviewing) return;
 
+    const reviewId = ++latestReviewIdRef.current;
     setIsReviewing(true);
     setReviewError(null);
 
@@ -114,18 +123,24 @@ export const ReviewWorkspacePage: React.FC<ReviewWorkspacePageProps> = ({
 
     try {
       const response = await submitReview(payload);
-      setReviewResult(response);
-      setLastReviewedDraft(draftText);
-      setDismissedFindingIds(new Set());
-      setSelectedCategory('All');
+      if (reviewId === latestReviewIdRef.current) {
+        setReviewResult(response);
+        setLastReviewedDraft(draftText);
+        setDismissedFindingIds(new Set());
+        setSelectedCategory('All');
+      }
     } catch (err: unknown) {
-      if (err instanceof ApiError) {
-        setReviewError(err.message);
-      } else {
-        setReviewError((err as Error).message || 'An error occurred during content review.');
+      if (reviewId === latestReviewIdRef.current) {
+        if (err instanceof ApiError) {
+          setReviewError(err.message);
+        } else {
+          setReviewError((err as Error).message || 'An error occurred during content review.');
+        }
       }
     } finally {
-      setIsReviewing(false);
+      if (reviewId === latestReviewIdRef.current) {
+        setIsReviewing(false);
+      }
     }
   };
 
@@ -244,42 +259,26 @@ export const ReviewWorkspacePage: React.FC<ReviewWorkspacePageProps> = ({
 
   return (
     <div className="workspace-wrapper">
-      {/* 1. Workspace Header */}
-      <header className="workspace-header">
-        <div className="workspace-nav-container">
-          <div className="workspace-brand-row">
-            <div
-              className="logo-group"
-              onClick={() => navigate('/')}
-              style={{ cursor: 'pointer' }}
-              title="Return to homepage"
-            >
-              <ShieldLogoIcon size={24} />
-              <span className="brand-name">ProofMark AI</span>
-            </div>
-            <span className="workspace-tag">Review Workspace</span>
+      {/* 1. Header Bar */}
+      <header className="editorial-header">
+        <div className="nav-inner">
+          <div className="brand-mark" onClick={() => navigate('/')} role="button" tabIndex={0}>
+            <ShieldLogoIcon size={26} />
+            <span className="brand-title">ProofMark AI</span>
           </div>
 
-          <div className="workspace-actions-row">
-            <button
-              type="button"
-              className="btn-text-nav"
-              onClick={() => navigate('/')}
-            >
-              ← Back to home
-            </button>
-
-            <div className="status-pill-wrap">
+          <div className="nav-actions">
+            <div className="status-pill-wrap" title="Engine Connection Status">
               {backendStatus === 'connected' && (
-                <span className="status-pill connected" title="Backend service is operational">
+                <span className="status-pill connected">
                   <span className="status-dot"></span>
-                  Connected
+                  Engine Online
                 </span>
               )}
               {backendStatus === 'disconnected' && (
-                <span className="status-pill disconnected" title="Backend service is offline">
+                <span className="status-pill disconnected">
                   <span className="status-dot"></span>
-                  Disconnected
+                  Engine Offline
                   <button
                     type="button"
                     className="status-retry-link"
@@ -296,185 +295,163 @@ export const ReviewWorkspacePage: React.FC<ReviewWorkspacePageProps> = ({
                 </span>
               )}
             </div>
+
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => navigate('/')}
+            >
+              &larr; Return Home
+            </button>
           </div>
         </div>
       </header>
 
       {/* 2. Workspace Body */}
-      <main className="workspace-main">
-        {/* Workspace Intro & Step Progress */}
-        <div className="workspace-intro-row">
-          <div>
-            <h1 className="workspace-title">Review your content</h1>
-            <p className="workspace-subtitle">
-              Audit drafts against brand guidelines, terminology rules, and approved corporate facts.
-            </p>
+      <main className="workspace-main-content">
+        {/* Desk Meta & Controls Row */}
+        <div className="workspace-meta-row">
+          <div className="desk-title-group">
+            <h1 className="desk-headline">The Brand Standards Desk</h1>
+            <span className="desk-caption">
+              Step {currentStep} of 3: {currentStep === 1 ? 'Prepare Manuscript' : currentStep === 2 ? 'Audit in Progress' : 'Review Editorial Findings'}
+            </span>
           </div>
 
-          {/* Visual Step Guide */}
-          <div className="step-tracker" aria-label="Review progress steps">
-            <div className={`tracker-step ${currentStep >= 1 ? 'active' : ''}`}>
-              <span className="step-circle">1</span>
-              <span className="step-label">Draft</span>
-            </div>
-            <div className={`tracker-line ${currentStep >= 2 ? 'active' : ''}`}></div>
-            <div className={`tracker-step ${currentStep >= 2 ? 'active' : ''}`}>
-              <span className="step-circle">2</span>
-              <span className="step-label">Review</span>
-            </div>
-            <div className={`tracker-line ${currentStep >= 3 ? 'active' : ''}`}></div>
-            <div className={`tracker-step ${currentStep >= 3 ? 'active' : ''}`}>
-              <span className="step-circle">3</span>
-              <span className="step-label">Refine</span>
-            </div>
+          <div className="workspace-controls-group">
+            <button
+              type="button"
+              className="btn-secondary"
+              style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
+              onClick={handleLoadSample}
+            >
+              Load Sample Copy
+            </button>
+
+            {draftText && (
+              <button
+                type="button"
+                className="btn-text"
+                style={{ fontSize: '0.8rem', color: 'var(--text-subtle)' }}
+                onClick={handleClearDraft}
+              >
+                Clear
+              </button>
+            )}
           </div>
         </div>
 
-        {/* 3. Two-Column Workspace Layout */}
+        {/* 2-Column Responsive Workspace Grid */}
         <div className="workspace-grid">
-          {/* Left Column: Draft Editor & Reference Settings */}
-          <div className="workspace-left-col">
-            <div className="panel editor-panel">
-              <div className="panel-header">
-                <div className="panel-title-group">
-                  <h2 className="panel-title">Draft content</h2>
-                  {isDraftModified && (
-                    <span className="badge-modified" title="Draft has been modified since last review">
-                      • Edited since last review
-                    </span>
-                  )}
-                </div>
-
-                <div className="editor-button-group">
-                  <button
-                    type="button"
-                    className="btn-secondary btn-sm"
-                    onClick={handleLoadSample}
-                    disabled={isReviewing}
-                    title="Insert realistic sample draft containing deliberate brand issues"
-                  >
-                    Load sample
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-secondary btn-sm"
-                    onClick={handleClearDraft}
-                    disabled={isReviewing || isDraftEmpty}
-                    title="Clear current editor content"
-                  >
-                    Clear
-                  </button>
-                </div>
-              </div>
-
-              <textarea
-                id="draft-editor-textarea"
-                className="draft-textarea"
-                placeholder="Paste marketing copy, product announcements, email drafts, or web text here..."
-                value={draftText}
-                onChange={(e) => setDraftText(e.target.value)}
-                disabled={isReviewing}
-                aria-label="Draft copy to review"
-              />
-
-              <div className="draft-meta-bar">
-                <span
-                  className="char-count"
-                  style={{
-                    color: isOverLimit ? 'var(--danger)' : undefined,
-                    fontWeight: isOverLimit ? 600 : 400
-                  }}
-                >
-                  {draftText.length.toLocaleString()} / {maxDraftLength.toLocaleString()} characters
-                </span>
-                <span className="length-note">Max 20,000 chars</span>
-              </div>
-
-              <button
-                type="button"
-                className="btn-primary btn-review-action"
-                onClick={handleExecuteReview}
-                disabled={isDraftEmpty || isOverLimit || isReviewing}
-              >
-                {isReviewing ? (
-                  <>
-                    <span className="spinner" aria-hidden="true"></span>
-                    Running brand review...
-                  </>
-                ) : (
-                  <>
-                    <SparklesIcon size={18} />
-                    {lastReviewedDraft && isDraftModified ? 'Review updated draft' : 'Review content'}
-                  </>
+          {/* Left Column: Draft Manuscript Editor */}
+          <div className="manuscript-panel">
+            <div className="panel-header-row">
+              <span className="panel-heading">SECTION 01: DRAFT MANUSCRIPT</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {isDraftModified && (
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--warning)', background: 'var(--warning-light)', padding: '0.1rem 0.4rem', borderRadius: 'var(--radius-xs)' }}>
+                    Edited since last audit
+                  </span>
                 )}
-              </button>
+              </div>
             </div>
 
-            {/* Brand Settings & Reference Standards */}
-            <div className="panel settings-panel">
+            <textarea
+              className="manuscript-textarea"
+              placeholder="Paste your draft marketing, announcement, or communication copy here for review..."
+              value={draftText}
+              onChange={(e) => setDraftText(e.target.value)}
+              disabled={isReviewing}
+              aria-label="Draft text editor"
+            />
+
+            <div className="editor-meta-bar">
+              <span>{wordCount} words • {draftText.length.toLocaleString()} characters</span>
+              <span style={{ color: isOverLimit ? 'var(--danger)' : 'var(--text-subtle)' }}>
+                Limit: {maxDraftLength.toLocaleString()}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              className="btn-primary btn-block"
+              style={{ marginTop: '1rem', padding: '0.75rem' }}
+              onClick={handleExecuteReview}
+              disabled={isDraftEmpty || isOverLimit || isReviewing}
+            >
+              {isReviewing ? (
+                <>
+                  <SparklesIcon size={16} /> Auditing with Groq Cloud AI...
+                </>
+              ) : isDraftModified ? (
+                <>
+                  <SparklesIcon size={16} /> Re-Run Brand Review
+                </>
+              ) : (
+                <>
+                  <SparklesIcon size={16} /> Run Brand Review
+                </>
+              )}
+            </button>
+
+            {/* Brand Guidelines & Reference Standards Accordion */}
+            <div className="standards-accordion">
               <button
                 type="button"
-                className="settings-toggle-head"
+                className="accordion-trigger-btn"
                 onClick={() => setSettingsOpen(!settingsOpen)}
                 aria-expanded={settingsOpen}
               >
-                <div className="settings-toggle-title">
-                  <span className="font-semibold">Brand Standards &amp; Reference Rules</span>
-                  <span className="settings-count-pill">
-                    {useBundledProfile
-                      ? 'Bundled defaults (4 terms • 3 voice • 4 facts)'
-                      : `Custom (${approvedTerms.length} terms • ${brandGuidelines.length} voice • ${approvedFacts.length} facts)`}
-                  </span>
-                </div>
-                <span className="toggle-indicator">{settingsOpen ? '▲ Hide' : '▼ Customize'}</span>
+                <span>Reference Standards ({useBundledProfile ? 'Default Enterprise Profile' : 'Custom Profile'})</span>
+                <span style={{ color: 'var(--primary)', fontFamily: 'var(--font-mono)' }}>
+                  {settingsOpen ? '− Close' : '+ Edit Standards'}
+                </span>
               </button>
 
               {settingsOpen && (
-                <div className="settings-expandable-body">
-                  <div className="profile-mode-selector">
-                    <label className="radio-label">
+                <div className="accordion-body">
+                  <div style={{ display: 'flex', gap: '1.25rem', marginBottom: '0.85rem', flexWrap: 'wrap' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', cursor: 'pointer' }}>
                       <input
                         type="radio"
-                        name="profile-mode"
+                        name="profile_mode"
                         checked={useBundledProfile}
                         onChange={() => setUseBundledProfile(true)}
-                        disabled={isReviewing}
                       />
-                      <span>Use bundled sample profile (standard defaults)</span>
+                      <span>Use Default Profile ({DEFAULT_BRAND_GUIDELINES.length} guidelines, {DEFAULT_APPROVED_TERMS.length} terms, {DEFAULT_APPROVED_FACTS.length} facts)</span>
                     </label>
 
-                    <label className="radio-label">
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', cursor: 'pointer' }}>
                       <input
                         type="radio"
-                        name="profile-mode"
+                        name="profile_mode"
                         checked={!useBundledProfile}
                         onChange={() => setUseBundledProfile(false)}
-                        disabled={isReviewing}
                       />
-                      <span>Custom reference rules</span>
+                      <span>Customize Profile JSON</span>
                     </label>
                   </div>
 
                   {!useBundledProfile && (
-                    <div className="custom-rules-workspace">
-                      <div className="settings-tabs-row">
+                    <div>
+                      <div className="standards-tabs-row">
                         <button
                           type="button"
-                          className={`settings-tab-btn ${settingsTab === 'terms' ? 'active' : ''}`}
+                          className={`standards-tab-btn ${settingsTab === 'terms' ? 'active' : ''}`}
                           onClick={() => setSettingsTab('terms')}
                         >
-                          Terminology ({approvedTerms.length})
+                          Approved Terms ({approvedTerms.length})
                         </button>
                         <button
                           type="button"
-                          className={`settings-tab-btn ${settingsTab === 'guidelines' ? 'active' : ''}`}
+                          className={`standards-tab-btn ${settingsTab === 'guidelines' ? 'active' : ''}`}
                           onClick={() => setSettingsTab('guidelines')}
                         >
-                          Voice Guidelines ({brandGuidelines.length})
+                          Brand Guidelines ({brandGuidelines.length})
                         </button>
                         <button
                           type="button"
-                          className={`settings-tab-btn ${settingsTab === 'facts' ? 'active' : ''}`}
+                          className={`standards-tab-btn ${settingsTab === 'facts' ? 'active' : ''}`}
                           onClick={() => setSettingsTab('facts')}
                         >
                           Approved Facts ({approvedFacts.length})
@@ -482,298 +459,248 @@ export const ReviewWorkspacePage: React.FC<ReviewWorkspacePageProps> = ({
                       </div>
 
                       {settingsTab === 'terms' && (
-                        <div>
-                          <textarea
-                            className="json-textarea"
-                            value={termsJson}
-                            onChange={(e) => handleUpdateTerms(e.target.value)}
-                            disabled={isReviewing}
-                            placeholder='[{"id":"TERM-01","preferred":"customer","avoid":["consumer"]}]'
-                          />
-                          <p className="settings-tab-helper">
-                            Format: array of objects with <code>id</code>, <code>preferred</code> (string), and <code>avoid</code> (array of strings).
-                          </p>
-                        </div>
+                        <textarea
+                          className="standards-code-editor"
+                          value={termsJson}
+                          onChange={(e) => handleUpdateTerms(e.target.value)}
+                          placeholder="JSON array of terminology rules..."
+                          aria-label="Terminology rules JSON"
+                        />
                       )}
 
                       {settingsTab === 'guidelines' && (
-                        <div>
-                          <textarea
-                            className="json-textarea"
-                            value={guidelinesJson}
-                            onChange={(e) => handleUpdateGuidelines(e.target.value)}
-                            disabled={isReviewing}
-                            placeholder='[{"id":"VOICE-01","text":"Clear, friendly, and professional language."}]'
-                          />
-                          <p className="settings-tab-helper">
-                            Format: array of objects with <code>id</code> and <code>text</code> description.
-                          </p>
-                        </div>
+                        <textarea
+                          className="standards-code-editor"
+                          value={guidelinesJson}
+                          onChange={(e) => handleUpdateGuidelines(e.target.value)}
+                          placeholder="JSON array of brand guidelines..."
+                          aria-label="Brand guidelines JSON"
+                        />
                       )}
 
                       {settingsTab === 'facts' && (
-                        <div>
-                          <textarea
-                            className="json-textarea"
-                            value={factsJson}
-                            onChange={(e) => handleUpdateFacts(e.target.value)}
-                            disabled={isReviewing}
-                            placeholder='[{"id":"FACT-01","text":"Service is available in 10 regions."}]'
-                          />
-                          <p className="settings-tab-helper">
-                            Format: array of verified facts with <code>id</code> and <code>text</code>.
-                          </p>
-                        </div>
+                        <textarea
+                          className="standards-code-editor"
+                          value={factsJson}
+                          onChange={(e) => handleUpdateFacts(e.target.value)}
+                          placeholder="JSON array of approved facts..."
+                          aria-label="Approved facts JSON"
+                        />
                       )}
 
                       {settingsError && (
-                        <div className="settings-error-notice">
-                          JSON syntax error: {settingsError}
-                        </div>
+                        <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '0.4rem' }}>
+                          JSON Parse Error: {settingsError}
+                        </p>
                       )}
 
-                      <div className="settings-reset-row">
+                      <div style={{ marginTop: '0.65rem', display: 'flex', justifyContent: 'flex-end' }}>
                         <button
                           type="button"
-                          className="btn-text-sm"
+                          className="btn-text"
+                          style={{ fontSize: '0.75rem' }}
                           onClick={handleResetSettings}
                         >
-                          Reset to sample defaults
+                          Reset to Defaults
                         </button>
                       </div>
                     </div>
-                  )}
-
-                  {useBundledProfile && (
-                    <p className="bundled-info-text">
-                      The backend resolves standard brand standards from its bundled data: 4 terminology rules (e.g. customer vs. consumer), 3 voice guidelines (clarity, respectful tone, brand honesty), and 4 verified corporate facts.
-                    </p>
                   )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Right Column: Review Findings & Summary */}
-          <div className="workspace-right-col">
-            <div className="panel findings-panel">
-              {/* Header of Findings Panel */}
-              <div className="findings-panel-head">
-                <h2 className="panel-title">Review findings</h2>
-                {reviewResult && (
-                  <span className="findings-count-badge">
-                    {activeCount} active{dismissedCount > 0 ? `, ${dismissedCount} dismissed` : ''}
+          {/* Right Column: Editorial Findings Ledger */}
+          <div className="findings-panel">
+            <div className="findings-header-area">
+              <div className="findings-title-row">
+                <span className="panel-heading">SECTION 02: EDITORIAL FINDINGS LEDGER</span>
+                {findings.length > 0 && (
+                  <span className="findings-count-pill">
+                    {activeCount} Active • {dismissedCount} Dismissed
                   </span>
                 )}
               </div>
 
-              {/* 1. Reviewing / Loading state */}
+              {/* Summary Banner if Result Exists */}
+              {reviewResult && (
+                <div className="findings-summary-box">
+                  <div className="summary-headline-text">
+                    {reviewResult.review_summary}
+                  </div>
+                  <div className="summary-meta-badges">
+                    <span className="badge-mandate">
+                      Human Review Required
+                    </span>
+                    {reviewResult.review_status && (
+                      <span className="badge-engine">
+                        Rules: {reviewResult.review_status.terminology_check} • Groq AI: {reviewResult.review_status.ai_review_check}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Category Filter Chips Bar */}
+              {findings.length > 0 && (
+                <div className="filter-ledger-bar">
+                  <button
+                    type="button"
+                    className={`ledger-chip-btn ${selectedCategory === 'All' ? 'active' : ''}`}
+                    onClick={() => setSelectedCategory('All')}
+                  >
+                    All ({findings.length})
+                  </button>
+                  {categories.map((cat) => {
+                    const count = findings.filter((f) => f.category === cat).length;
+                    if (count === 0 && !presentCategories.includes(cat)) return null;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        className={`ledger-chip-btn ${selectedCategory === cat ? 'active' : ''}`}
+                        onClick={() => setSelectedCategory(cat)}
+                      >
+                        {cat} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Scrollable Findings Region */}
+            <div className="findings-scroll-area">
+              {/* 1. Loading State */}
               {isReviewing && (
-                <div className="findings-loading-state">
-                  <div className="spinner large" aria-hidden="true"></div>
-                  <h3 className="loading-title">Analyzing draft content...</h3>
-                  <p className="loading-desc">
-                    Running word-boundary terminology checks, evaluating tone against guidelines, and auditing claims against verified facts.
+                <div className="ledger-state-center">
+                  <div className="state-glyph">¶</div>
+                  <h3 className="state-title">Auditing Manuscript</h3>
+                  <p className="state-caption">
+                    Groq Cloud AI is cross-referencing your draft against tone rules, prohibited terms, and approved facts...
                   </p>
                 </div>
               )}
 
-              {/* 2. Error state */}
+              {/* 2. Error State */}
               {!isReviewing && reviewError && (
-                <div className="findings-error-state">
-                  <div className="alert-error-box">
-                    <strong>Review request failed</strong>
-                    <p>{reviewError}</p>
-                    <button
-                      type="button"
-                      className="btn-secondary btn-sm"
-                      onClick={handleExecuteReview}
-                    >
-                      Retry review
-                    </button>
-                  </div>
-                  <p className="error-fallback-note">
-                    Your draft content remains safely preserved in the editor.
-                  </p>
-                </div>
-              )}
-
-              {/* 3. Initial State (No review run yet) */}
-              {!isReviewing && !reviewError && !reviewResult && (
-                <div className="findings-empty-state">
-                  <div className="empty-state-icon">
-                    <ShieldLogoIcon size={38} />
-                  </div>
-                  <h3 className="empty-title">Ready for your review</h3>
-                  <p className="empty-desc">
-                    Enter or paste copy into the editor, then click &ldquo;Review content&rdquo; to scan for terminology violations, voice deviations, and unverified claims.
+                <div className="ledger-state-center">
+                  <div style={{ color: 'var(--danger)', fontSize: '2rem', marginBottom: '0.5rem' }}>✕</div>
+                  <h3 className="state-title" style={{ color: 'var(--danger)' }}>Audit Request Failed</h3>
+                  <p className="state-caption">
+                    {reviewError}
                   </p>
                   <button
                     type="button"
-                    className="btn-secondary btn-sm"
-                    onClick={handleLoadSample}
+                    className="btn-primary"
+                    onClick={handleExecuteReview}
                   >
-                    Load sample draft to test
+                    Retry Audit
                   </button>
                 </div>
               )}
 
-              {/* 4. Zero findings state */}
-              {!isReviewing && !reviewError && reviewResult && findings.length === 0 && (
-                <div className="findings-zero-state">
-                  <div className="zero-icon-bubble">
-                    <CheckIcon size={24} />
-                  </div>
-                  <h3 className="zero-title">No issues identified</h3>
-                  <p className="zero-desc">
-                    {reviewResult.review_summary ||
-                      'The review completed with 0 issues identified. Content aligns with provided reference standards.'}
+              {/* 3. Empty Initial State */}
+              {!isReviewing && !reviewError && !reviewResult && (
+                <div className="ledger-state-center">
+                  <div className="state-glyph">§</div>
+                  <h3 className="state-title">No Findings Recorded Yet</h3>
+                  <p className="state-caption">
+                    Enter or paste draft copy into the manuscript editor on the left and click &ldquo;Run Brand Review&rdquo; to begin.
                   </p>
-                  {reviewResult.review_status?.details && (
-                    <div className="status-meta-note">
-                      <strong>Check status:</strong> {reviewResult.review_status.details}
-                    </div>
-                  )}
-                  <div className="human-review-note">
-                    <strong>Human Review Required:</strong> Automated checks assist human reviewers but do not make final approval decisions.
-                  </div>
                 </div>
               )}
 
-              {/* 5. Findings List & Actions */}
+              {/* 4. Zero Findings State */}
+              {!isReviewing && !reviewError && reviewResult && findings.length === 0 && (
+                <div className="ledger-state-center">
+                  <div style={{ color: 'var(--success)', fontSize: '2.5rem', marginBottom: '0.5rem' }}>✓</div>
+                  <h3 className="state-title" style={{ color: 'var(--success)' }}>Manuscript Certified Compliant</h3>
+                  <p className="state-caption">
+                    No terminology issues, tone hyperbole, or factual discrepancies detected against provided standards.
+                  </p>
+                </div>
+              )}
+
+              {/* 5. Findings List */}
               {!isReviewing && !reviewError && reviewResult && findings.length > 0 && (
-                <div className="findings-content">
-                  {/* Summary & Human Review Tag */}
-                  <div className="summary-header-card">
-                    <div className="summary-title-row">
-                      <span className="summary-text">{reviewResult.review_summary}</span>
-                    </div>
+                filteredFindings.map((finding) => {
+                  const isDismissed = dismissedFindingIds.has(finding.id);
+                  const severityKey = finding.severity.toLowerCase();
 
-                    <div className="summary-tags-row">
-                      <span className="tag-human-review">
-                        Human review required
-                      </span>
-
-                      {reviewResult.review_status && (
-                        <span className="tag-engine-status">
-                          Rules: {reviewResult.review_status.terminology_check} • AI: {reviewResult.review_status.ai_review_check}
-                        </span>
-                      )}
-                    </div>
-
-                    {reviewResult.review_status?.details && (
-                      <div className="status-details-callout">
-                        {reviewResult.review_status.details}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Filter chips */}
-                  <div className="filter-chips-bar">
-                    <button
-                      type="button"
-                      className={`chip-btn ${selectedCategory === 'All' ? 'active' : ''}`}
-                      onClick={() => setSelectedCategory('All')}
+                  return (
+                    <div
+                      key={finding.id}
+                      className={`ledger-finding-item ${isDismissed ? 'dismissed' : ''}`}
                     >
-                      All ({findings.length})
-                    </button>
-                    {categories.map((cat) => {
-                      const count = findings.filter((f) => f.category === cat).length;
-                      if (count === 0 && !presentCategories.includes(cat)) return null;
-                      return (
-                        <button
-                          key={cat}
-                          type="button"
-                          className={`chip-btn ${selectedCategory === cat ? 'active' : ''}`}
-                          onClick={() => setSelectedCategory(cat)}
-                        >
-                          {cat} ({count})
-                        </button>
-                      );
-                    })}
-                  </div>
+                      <div className="finding-row-head">
+                        <div className="finding-badges">
+                          <span className="tag-badge cat">{finding.category}</span>
+                          <span className={`tag-badge sev-${severityKey}`}>
+                            {finding.severity}
+                          </span>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-subtle)' }}>
+                            Confidence: {finding.confidence}
+                          </span>
+                        </div>
+                        <span className="finding-id-label">{finding.id}</span>
+                      </div>
 
-                  {/* Findings Cards List */}
-                  <div className="finding-cards-list">
-                    {filteredFindings.map((finding) => {
-                      const isDismissed = dismissedFindingIds.has(finding.id);
-                      const severityClass =
-                        finding.severity.toLowerCase() === 'high'
-                          ? 'sev-high'
-                          : finding.severity.toLowerCase() === 'medium'
-                          ? 'sev-med'
-                          : 'sev-low';
+                      {finding.excerpt && (
+                        <div className="finding-excerpt-callout">
+                          &ldquo;{finding.excerpt}&rdquo;
+                        </div>
+                      )}
 
-                      return (
-                        <div
-                          key={finding.id}
-                          className={`finding-card ${isDismissed ? 'dismissed' : ''}`}
-                        >
-                          <div className="finding-card-head">
-                            <div className="finding-badges-group">
-                              <span className="badge-cat">{finding.category}</span>
-                              <span className={`badge-sev ${severityClass}`}>{finding.severity}</span>
-                              <span className="badge-conf">Confidence: {finding.confidence}</span>
-                            </div>
-                            <span className="finding-id-tag">{finding.id}</span>
+                      <p className="finding-explanation-body">
+                        {finding.explanation}
+                      </p>
+
+                      {finding.suggestion && (
+                        <div className="finding-rewrite-box">
+                          <div className="rewrite-text-group">
+                            <span className="rewrite-prefix">Suggested rewrite:</span>
+                            <span>&ldquo;{finding.suggestion}&rdquo;</span>
                           </div>
-
-                          {finding.excerpt && (
-                            <div className="finding-excerpt-block">
-                              <span className="excerpt-quote">&ldquo;{finding.excerpt}&rdquo;</span>
-                            </div>
-                          )}
-
-                          <p className="finding-explanation-text">
-                            {finding.explanation}
-                          </p>
-
-                          {finding.suggestion && (
-                            <div className="finding-suggestion-box">
-                              <div className="suggestion-info">
-                                <span className="suggestion-prefix">Suggested rewrite:</span>
-                                <span className="suggestion-val">&ldquo;{finding.suggestion}&rdquo;</span>
-                              </div>
-                              {!isDismissed && (
-                                <button
-                                  type="button"
-                                  className="btn-accept-suggestion"
-                                  onClick={() => handleAcceptSuggestion(finding)}
-                                  title="Replace excerpt with suggestion in editor"
-                                >
-                                  Accept suggestion
-                                </button>
-                              )}
-                            </div>
-                          )}
-
-                          <div className="finding-card-footer">
-                            <div className="evidence-ids-list">
-                              {finding.evidence_ids && finding.evidence_ids.length > 0 && (
-                                <>
-                                  <span className="evidence-label">Evidence:</span>
-                                  {finding.evidence_ids.map((id) => (
-                                    <span key={id} className="evidence-code">
-                                      {id}
-                                    </span>
-                                  ))}
-                                </>
-                              )}
-                            </div>
-
+                          {!isDismissed && (
                             <button
                               type="button"
-                              className="btn-dismiss-action"
-                              onClick={() => handleToggleDismiss(finding.id)}
+                              className="btn-accept-rewrite"
+                              onClick={() => handleAcceptSuggestion(finding)}
+                              title="Replace excerpt with suggestion in draft editor"
                             >
-                              {isDismissed ? 'Undo dismiss' : 'Dismiss'}
+                              Accept suggestion
                             </button>
-                          </div>
+                          )}
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                      )}
+
+                      <div className="finding-footer-meta">
+                        <div className="evidence-tags-wrap">
+                          {finding.evidence_ids && finding.evidence_ids.length > 0 && (
+                            <>
+                              <span style={{ fontWeight: 500 }}>Evidence:</span>
+                              {finding.evidence_ids.map((id) => (
+                                <span key={id} className="evidence-id-code">
+                                  {id}
+                                </span>
+                              ))}
+                            </>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          className="btn-dismiss-finding"
+                          onClick={() => handleToggleDismiss(finding.id)}
+                        >
+                          {isDismissed ? 'Undo dismiss' : 'Dismiss'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>
@@ -782,3 +709,5 @@ export const ReviewWorkspacePage: React.FC<ReviewWorkspacePageProps> = ({
     </div>
   );
 };
+
+export default ReviewWorkspacePage;

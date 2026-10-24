@@ -1,5 +1,8 @@
 import { Readable, Duplex } from 'stream';
 
+process.env.APP_ENV = 'test';
+process.env.NODE_ENV = 'test';
+
 class DummySocket extends Duplex {
   constructor() {
     super();

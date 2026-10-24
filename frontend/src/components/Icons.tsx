@@ -5,7 +5,7 @@ interface IconProps {
   size?: number;
 }
 
-export const ShieldLogoIcon: React.FC<IconProps> = ({ className, size = 24 }) => (
+export const ShieldLogoIcon: React.FC<IconProps> = ({ className, size = 26 }) => (
   <svg
     width={size}
     height={size}
@@ -14,23 +14,48 @@ export const ShieldLogoIcon: React.FC<IconProps> = ({ className, size = 24 }) =>
     xmlns="http://www.w3.org/2000/svg"
     className={className}
     aria-hidden="true"
+    style={{ flexShrink: 0, display: 'inline-block', verticalAlign: 'middle' }}
   >
-    <path
-      d="M12 2L4 5V11.5C4 16.5 7.5 21 12 22C16.5 21 20 16.5 20 11.5V5L12 2Z"
-      fill="#2563EB"
-      fillOpacity="0.12"
-      stroke="#1D4ED8"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M9 12L11 14L15 10"
-      stroke="#1D4ED8"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
+    <defs>
+      <linearGradient id="shieldLeftGreen" x1="3.5" y1="2" x2="12" y2="23" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#3d8b66" />
+        <stop offset="100%" stopColor="#256446" />
+      </linearGradient>
+      <linearGradient id="shieldRightGreen" x1="12" y1="2" x2="20.5" y2="23" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#1e4d37" />
+        <stop offset="100%" stopColor="#123324" />
+      </linearGradient>
+      <filter id="shieldShadow" x="-10%" y="-10%" width="125%" height="125%">
+        <feDropShadow dx="0" dy="1" stdDeviation="0.75" floodOpacity="0.2" floodColor="#0d2419" />
+      </filter>
+    </defs>
+    <g filter="url(#shieldShadow)">
+      {/* Left faceted half (lighter emerald green) */}
+      <path
+        d="M12 1.8L3.5 5V11.8C3.5 17.2 7.2 21.2 12 22.8V1.8Z"
+        fill="url(#shieldLeftGreen)"
+      />
+      {/* Right faceted half (darker forest green) */}
+      <path
+        d="M12 1.8L20.5 5V11.8C20.5 17.2 16.8 21.2 12 22.8V1.8Z"
+        fill="url(#shieldRightGreen)"
+      />
+      {/* Outer shield perimeter stroke */}
+      <path
+        d="M12 1.8L3.5 5V11.8C3.5 17.2 7.2 21.2 12 22.8C16.8 21.2 20.5 17.2 20.5 11.8V5L12 1.8Z"
+        stroke="#123525"
+        strokeWidth="0.6"
+        fill="none"
+      />
+      {/* Bold rounded white checkmark */}
+      <path
+        d="M8.2 12.2L11 15.2L16.2 9.5"
+        stroke="#ffffff"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </g>
   </svg>
 );
 

@@ -16,16 +16,41 @@ app.use((req, res, next) => {
   next();
 });
 
-// 2. CORS configuration with explicit origins
+// Helper to validate allowed CORS origins including wildcards and Vercel domains
+function isAllowedOrigin(origin, allowedList) {
+  if (!origin) return true;
+  if (allowedList.includes('*')) return true;
+  if (allowedList.includes(origin)) return true;
+
+  try {
+    const parsed = new URL(origin);
+    // Allow any Vercel production or preview deployment URL
+    if (parsed.hostname.endsWith('.vercel.app')) {
+      return true;
+    }
+  } catch {
+    // ignore URL parsing error
+  }
+
+  // Support wildcards like https://*.vercel.app or https://*.onrender.com
+  for (const allowed of allowedList) {
+    if (allowed.includes('*')) {
+      const regex = new RegExp('^' + allowed.replace(/\./g, '\\.').replace(/\*/g, '.*') + '$');
+      if (regex.test(origin)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+// 2. CORS configuration with explicit origins and cloud deployment support
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps, curl, server-to-server)
-      if (!origin) return callback(null, true);
-      if (
-        config.FRONTEND_ORIGINS.includes('*') ||
-        config.FRONTEND_ORIGINS.includes(origin)
-      ) {
+      if (isAllowedOrigin(origin, config.FRONTEND_ORIGINS)) {
         return callback(null, true);
       }
       return callback(new Error(`CORS origin '${origin}' is not permitted`));
@@ -247,12 +272,18 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 9. Startup when run directly
+// 9. Startup when run directly or in production container
 const isDirectRun =
-  process.argv[1] &&
-  fileURLToPath(import.meta.url).endsWith(process.argv[1].replace(/^.*\//, ''));
+  Boolean(
+    process.argv[1] &&
+    (fileURLToPath(import.meta.url).endsWith(process.argv[1].replace(/^.*\//, '')) ||
+      process.argv[1].endsWith('main.js') ||
+      process.argv[1].endsWith('app/main.js'))
+  ) ||
+  process.env.RUN_STANDALONE === 'true' ||
+  process.env.NODE_ENV === 'production';
 
-if (isDirectRun || process.env.RUN_STANDALONE === 'true') {
+if (isDirectRun) {
   app.listen(config.PORT, config.HOST, () => {
     logger.info(`ProofMark AI Backend running on http://${config.HOST}:${config.PORT}`);
     logger.info(`Interactive API docs available at http://${config.HOST}:${config.PORT}/docs`);

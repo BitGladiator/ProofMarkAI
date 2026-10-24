@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: proofmark-ai-backend
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: node backend/app/main.js
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: AI_PROVIDER
+        value: groq
+      - key: AI_MODEL
+        value: openai/gpt-oss-120b
+      - key: AI_API_KEY
+        sync: false
+      - key: FRONTEND_ORIGINS
+        value: "https://*.vercel.app,http://localhost:5173"
+      - key: MAX_DRAFT_LENGTH
+        value: "20000"
+      - key: AI_TIMEOUT_SECONDS
+        value: "30"
