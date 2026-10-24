@@ -5,6 +5,7 @@ function App() {
   const [message, setMessage] = useState("");
   const [findings, setFindings] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [guideline, setGuideline] = useState("General");
   const severityColors = {
     High: "red",
     Medium: "orange",
@@ -25,7 +26,7 @@ function App() {
       const response = await fetch(API_URL + "/api/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ draft: draft }),
+        body: JSON.stringify({ draft: draft, guideline: guideline }),
       });
       const data = await response.json();
       setFindings(data.findings);
@@ -55,10 +56,22 @@ function App() {
   return (
     <div>
       <h1>ProofMark AI</h1>
+      <label htmlFor="guideline">Brand guideline: </label>
+      <select
+        id="guideline"
+        value={guideline}
+        onChange={(e) => setGuideline(e.target.value)}
+      >
+        <option value="General">General</option>
+        <option value="Formal">Formal</option>
+        <option value="Friendly">Friendly</option>
+      </select>
+      <br />
       <textarea
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         rows={8}
+        aria-label="Draft content"
         placeholder="Paste your draft here"
       />
       <br />
